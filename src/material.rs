@@ -1,6 +1,4 @@
-use crate::Color;
-use image::Rgb;
-use num::clamp;
+use crate::color::Color;
 use parry3d::math::{Point, Real, Vector};
 use parry3d::query::Ray;
 use rand::distributions::Uniform;
@@ -65,10 +63,31 @@ impl Material for Diffuse {
     }
 
     fn attenuate_reflected_color(&self, color: Color) -> Color {
-        Rgb([
-            clamp(color[0] as f32 * self.attenuation, 0.0, 255.0) as u8,
-            clamp(color[1] as f32 * self.attenuation, 0.0, 255.0) as u8,
-            clamp(color[2] as f32 * self.attenuation, 0.0, 255.0) as u8,
-        ])
+        color * self.attenuation
+    }
+}
+
+pub struct ColorDiffuse {
+    color: Color,
+    coef: f32,
+}
+
+impl ColorDiffuse {
+    pub fn new(color: Color, coef: f32) -> Self {
+        assert!(coef <= 1.0f32);
+        ColorDiffuse { color, coef }
+    }
+}
+
+impl Material for ColorDiffuse {
+    fn interact_with_ray(&self, poi: Point<Real>, normal: Vector<Real>) -> RayInteractionResult {
+        RayInteractionResult::Reflected(Ray {
+            origin: poi,
+            dir: normal + random_unit_vect(),
+        })
+    }
+
+    fn attenuate_reflected_color(&self, color: Color) -> Color {
+        color.blend_with_coef(self.color, self.coef)
     }
 }

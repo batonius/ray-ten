@@ -3,25 +3,28 @@ use image::{ImageBuffer, Rgb};
 use std::time::Instant;
 
 mod camera;
+mod color;
 mod material;
+mod render;
 mod scene;
 
+use camera::Camera;
+use render::render;
 use scene::Scene;
 
 const IMAGE_WIDTH: u32 = 1600;
 const IMAGE_HEIGHT: u32 = 900;
-// const MAX_DEPTH: u32 = 5;
+const MAX_DEPTH: u32 = 10;
+const SAMPLES_PER_PIXEL: u32 = 64;
 
-pub type Color = Rgb<u8>;
-pub type Buffer = ImageBuffer<Color, Vec<u8>>;
-
-// static UNIT_DISTR: Uniform<f32> = Uniform::new(0.0f32, 1.0f32);
+pub type Buffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
 
 fn main() -> Result<()> {
     let mut buffer = Buffer::from_pixel(IMAGE_WIDTH, IMAGE_HEIGHT, Rgb([255u8, 255, 255]));
-    let scene = Scene::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32);
+    let camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32);
+    let scene = Scene::new();
     let now = Instant::now();
-    scene.render(&mut buffer, 8)?;
+    render(&scene, &camera, &mut buffer, SAMPLES_PER_PIXEL, MAX_DEPTH);
     println!("Elapsed {}us", now.elapsed().as_micros());
     buffer.save("out.png")?;
     Ok(())

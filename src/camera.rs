@@ -20,20 +20,12 @@ impl Camera {
         }
     }
 
-    pub fn pixel_ray(
-        &self,
-        buffer_dims: (u32, u32),
-        pixel_pos: (u32, u32),
-        subpixel_offsets: (f32, f32),
-    ) -> Ray {
-        let (width, height) = buffer_dims;
-        let (x, y) = pixel_pos;
-        let (subpixel_x, subpixel_y) = subpixel_offsets;
+    pub fn pixel_ray(&self, x_offset: f32, y_offset: f32) -> Ray {
         Ray {
             origin: self.origin,
             dir: self.view_port_base
-                + (self.view_port_x_axis * (x as f32 + subpixel_x) / width as f32)
-                + (self.view_port_y_axis * (y as f32 + subpixel_y) / height as f32),
+                + (self.view_port_x_axis * x_offset)
+                + (self.view_port_y_axis * y_offset),
         }
     }
 }
