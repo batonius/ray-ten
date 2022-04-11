@@ -25,22 +25,27 @@ impl Color {
         ]
     }
 
+    #[allow(dead_code)]
     pub fn r(&self) -> f32 {
         self.0[0]
     }
 
+    #[allow(dead_code)]
     pub fn g(&self) -> f32 {
         self.0[0]
     }
 
+    #[allow(dead_code)]
     pub fn b(&self) -> f32 {
         self.0[0]
     }
 
+    #[allow(dead_code)]
     pub fn blend(&self, rhs: Color) -> Self {
         ((*self + rhs) * 0.5).normalize()
     }
 
+    #[allow(dead_code)]
     pub fn blend_with_coef(&self, rhs: Color, coef: f32) -> Self {
         assert!(coef <= 1.0);
         (*self * coef + (rhs * (1.0 - coef))).normalize()
@@ -64,6 +69,26 @@ impl MulAssign<f32> for Color {
         self.0[0] *= rhs;
         self.0[1] *= rhs;
         self.0[2] *= rhs;
+    }
+}
+
+impl Mul<Color> for Color {
+    type Output = Color;
+
+    fn mul(self, rhs: Color) -> Self::Output {
+        Color([
+            rhs.0[0] * self.0[0],
+            rhs.0[1] * self.0[1],
+            rhs.0[2] * self.0[2],
+        ])
+    }
+}
+
+impl MulAssign<Color> for Color {
+    fn mul_assign(&mut self, rhs: Color) {
+        self.0[0] *= rhs.0[0];
+        self.0[1] *= rhs.0[1];
+        self.0[2] *= rhs.0[2];
     }
 }
 

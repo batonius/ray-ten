@@ -14,8 +14,8 @@ use scene::Scene;
 
 const IMAGE_WIDTH: u32 = 1600;
 const IMAGE_HEIGHT: u32 = 900;
-const MAX_DEPTH: u32 = 10;
-const SAMPLES_PER_PIXEL: u32 = 64;
+const MAX_DEPTH: u32 = 50;
+const SAMPLES_PER_PIXEL: u32 = 1024;
 
 pub type Buffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
 
