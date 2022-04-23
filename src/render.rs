@@ -5,7 +5,7 @@ use rand::prelude::Distribution;
 use rand::thread_rng;
 
 pub fn render(
-    scene: &Scene,
+    scene: &impl Scene,
     camera: &Camera,
     buffer: &mut Buffer,
     samples_per_pixel: u32,
@@ -23,7 +23,7 @@ pub fn render(
                     (x as f32 + unit_distr.sample(&mut rng)) / width as f32,
                     (y as f32 + unit_distr.sample(&mut rng)) / height as f32,
                 );
-                pixel_color += scene.ray_color_iter(ray, max_depth);
+                pixel_color += scene.ray_color(ray, max_depth);
             }
             let pixel = Rgb((pixel_color * (1.0 / samples_per_pixel as f32))
                 .sqrt()

@@ -1,9 +1,10 @@
 use parry3d::math::{Isometry, Real, UnitVector, Vector};
+use parry3d::na::ComplexField;
 use parry3d::query::Ray;
 use parry3d::shape::{Ball, Cuboid};
 
 use crate::color::Color;
-use crate::material::{ColorDiffuse, Diffuse, Material, Metal, RayInteractionResult, SolidColor};
+use crate::material::{ColorDiffuse, Material, Metal, RayInteractionResult};
 
 pub struct Body {
     shape: Box<dyn parry3d::shape::Shape>,
@@ -11,13 +12,17 @@ pub struct Body {
     material: Box<dyn Material>,
 }
 
-pub struct Scene {
+pub trait Scene {
+    fn ray_color(&self, ray: Ray, depth: u32) -> Color;
+}
+
+pub struct DynamicScene {
     bodies: Vec<Body>,
 }
 
-impl Scene {
+impl DynamicScene {
     pub fn new() -> Self {
-        Scene {
+        DynamicScene {
             bodies: vec![
                 Body {
                     shape: Box::new(Ball::new(2f32)),
@@ -129,5 +134,132 @@ impl Scene {
         let t = 0.5f32 * (unit[1] + 1.0f32);
         let color = Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
         color
+    }
+}
+
+impl Scene for DynamicScene {
+    fn ray_color(&self, ray: Ray, depth: u32) -> Color {
+        self.ray_color_iter(ray, depth)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Plane {
+    Top,
+    Bottom,
+    Left,
+    Right,
+    Far,
+    Near,
+}
+
+const PLANES_COUNT: usize = 6;
+const EPSILON: f32 = 0.001;
+const PLANES_NORMALS: [Vector<Real>; PLANES_COUNT] = [
+    Vector::new(0.0, -1.0, 0.0),
+    Vector::new(0.0, 1.0, 0.0),
+    Vector::new(1.0, 0.0, 0.0),
+    Vector::new(-1.0, 0.0, 0.0),
+    Vector::new(0.0, 0.0, 1.0),
+    Vector::new(0.0, 0.0, -1.0),
+];
+
+const PLANES_COLORS: [Color; PLANES_COUNT] = [
+    Color::new(0.5, 0.5, 0.0),
+    Color::new(0.0, 0.5, 0.5),
+    Color::new(0.5, 0.0, 0.5),
+    Color::new(0.5, 0.0, 0.0),
+    Color::new(0.0, 0.0, 0.5),
+    Color::new(0.0, 0.5, 0.0),
+];
+
+const PLANES_OFFSETS: [f32; PLANES_COUNT] = [2.0, -2.0, -2.0, 2.0, -8.0, 0.0];
+
+pub struct FixedScene {}
+
+impl FixedScene {
+    pub fn new() -> Self {
+        FixedScene {}
+    }
+}
+
+impl Scene for FixedScene {
+    fn ray_color(&self, mut ray: Ray, depth: u32) -> Color {
+        let mut coef_color = Color::new(1.0, 1.0, 1.0);
+        let mut offset_color = Color::new(0.0, 0.0, 0.0);
+        let mut base_color = Color::new(1.0, 1.0, 1.0);
+
+        for _ in 0..depth {
+            let mut min_toi = std::f32::MAX;
+            let mut closest_plane = None;
+
+            if ray.dir[0].abs() > EPSILON {
+                if ray.dir[0] > 0.0 {
+                    let toi = (PLANES_OFFSETS[Plane::Right as usize] - ray.origin[0]) / ray.dir[0];
+                    if toi < min_toi {
+                        min_toi = toi;
+                        closest_plane = Some(Plane::Right);
+                    }
+                } else {
+                    let toi = (PLANES_OFFSETS[Plane::Left as usize] - ray.origin[0]) / ray.dir[0];
+                    if toi < min_toi {
+                        min_toi = toi;
+                        closest_plane = Some(Plane::Left);
+                    }
+                }
+            }
+
+            if ray.dir[1].abs() > EPSILON {
+                if ray.dir[1] > 0.0 {
+                    let toi = (PLANES_OFFSETS[Plane::Top as usize] - ray.origin[1]) / ray.dir[1];
+                    if toi < min_toi {
+                        min_toi = toi;
+                        closest_plane = Some(Plane::Top);
+                    }
+                } else {
+                    let toi = (PLANES_OFFSETS[Plane::Bottom as usize] - ray.origin[1]) / ray.dir[1];
+                    if toi < min_toi {
+                        min_toi = toi;
+                        closest_plane = Some(Plane::Bottom);
+                    }
+                }
+            }
+
+            if ray.dir[2].abs() > EPSILON {
+                if ray.dir[2] > 0.0 {
+                    let toi = (PLANES_OFFSETS[Plane::Near as usize] - ray.origin[2]) / ray.dir[2];
+                    if toi < min_toi {
+                        closest_plane = Some(Plane::Near);
+                    }
+                } else {
+                    let toi = (PLANES_OFFSETS[Plane::Far as usize] - ray.origin[2]) / ray.dir[2];
+                    if toi < min_toi {
+                        closest_plane = Some(Plane::Far);
+                    }
+                }
+            }
+
+            if let Some(plane) = closest_plane {
+                let poi = ray.point_at(min_toi);
+                if plane != Plane::Far {
+                    let normal = PLANES_NORMALS[plane as usize];
+                    let reflection_dir = ray.dir - 2.0 * ray.dir.dot(&normal) * normal;
+                    ray = Ray {
+                        origin: poi,
+                        dir: reflection_dir,
+                    };
+                    offset_color += coef_color * PLANES_COLORS[plane as usize];
+                    coef_color *= Color::new(0.2, 0.2, 0.2);
+                } else {
+                    if (poi[0] - poi[1]).abs() < 0.2 {
+                        base_color = Color::new(0.0, 0.0, 0.0);
+                    } else {
+                        base_color = PLANES_COLORS[plane as usize];
+                    }
+                }
+            }
+        }
+
+        offset_color + coef_color * base_color
     }
 }

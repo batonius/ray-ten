@@ -1,1 +1,7 @@
 /target
+flamegraph.svg
+out.png
+.vscode/launch.json
+perf.data.old
+perf.data
+out1.png
