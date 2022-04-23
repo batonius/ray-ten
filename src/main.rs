@@ -12,10 +12,10 @@ use camera::Camera;
 use render::render;
 use scene::{DynamicScene, FixedScene, Scene};
 
-const IMAGE_WIDTH: u32 = 800;
-const IMAGE_HEIGHT: u32 = 450;
-const MAX_DEPTH: u32 = 5;
-const SAMPLES_PER_PIXEL: u32 = 1;
+const IMAGE_WIDTH: u32 = 1600;
+const IMAGE_HEIGHT: u32 = 900;
+const MAX_DEPTH: u32 = 50;
+const SAMPLES_PER_PIXEL: u32 = 128;
 
 pub type Buffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
 

@@ -1,5 +1,6 @@
-use parry3d::math::{Isometry, Real, UnitVector, Vector};
-use parry3d::na::ComplexField;
+use std::f32::MIN;
+
+use parry3d::math::{Isometry, Point, Real, UnitVector, Vector};
 use parry3d::query::Ray;
 use parry3d::shape::{Ball, Cuboid};
 
@@ -144,42 +145,104 @@ impl Scene for DynamicScene {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-enum Plane {
+enum Obstacle {
     Top,
     Bottom,
     Left,
     Right,
     Far,
     Near,
+    Sphere,
 }
 
-const PLANES_COUNT: usize = 6;
+const OBSTACLE_COUNT: usize = 7;
 const EPSILON: f32 = 0.001;
-const PLANES_NORMALS: [Vector<Real>; PLANES_COUNT] = [
+const OBSTACLE_NORMALS: [Vector<Real>; OBSTACLE_COUNT] = [
     Vector::new(0.0, -1.0, 0.0),
     Vector::new(0.0, 1.0, 0.0),
     Vector::new(1.0, 0.0, 0.0),
     Vector::new(-1.0, 0.0, 0.0),
     Vector::new(0.0, 0.0, 1.0),
     Vector::new(0.0, 0.0, -1.0),
+    Vector::new(0.0, 0.0, 0.0),
 ];
 
-const PLANES_COLORS: [Color; PLANES_COUNT] = [
+const OBSTACLE_COLORS: [Color; OBSTACLE_COUNT] = [
     Color::new(0.5, 0.5, 0.0),
     Color::new(0.0, 0.5, 0.5),
     Color::new(0.5, 0.0, 0.5),
     Color::new(0.5, 0.0, 0.0),
     Color::new(0.0, 0.0, 0.5),
     Color::new(0.0, 0.5, 0.0),
+    Color::new(0.5, 0.5, 0.5),
 ];
 
-const PLANES_OFFSETS: [f32; PLANES_COUNT] = [2.0, -2.0, -2.0, 2.0, -8.0, 0.0];
+const OBSTACLE_OFFSETS: [f32; OBSTACLE_COUNT] = [2.0, -2.0, -2.0, 2.0, -8.0, 0.0, 0.0];
 
-pub struct FixedScene {}
+const SPHERE_RADIUS: f32 = 0.5;
+
+const MIN_TOI: f32 = 0.001;
+
+pub struct FixedScene {
+    sphere_pos: Point<Real>,
+}
 
 impl FixedScene {
     pub fn new() -> Self {
-        FixedScene {}
+        FixedScene {
+            sphere_pos: Point::new(-1.0, 0.7, -4.0),
+        }
+    }
+
+    fn intersects_sphere(&self, ray: &Ray) -> Option<f32> {
+        let dir_squared = Point::new(
+            ray.dir[0] * ray.dir[0],
+            ray.dir[1] * ray.dir[1],
+            ray.dir[2] * ray.dir[2],
+        );
+        let delta = ray.origin - self.sphere_pos;
+        let r_squared = SPHERE_RADIUS * SPHERE_RADIUS;
+        let d = r_squared * (dir_squared[0] + dir_squared[1] + dir_squared[2])
+            - (ray.dir[0] * delta[1] - ray.dir[1] * delta[0]).powi(2)
+            - (ray.dir[0] * delta[2] - ray.dir[2] * delta[0]).powi(2)
+            - (ray.dir[1] * delta[2] - ray.dir[2] * delta[1]).powi(2);
+        if d < 0.0 {
+            return None;
+        }
+        let t1: f32 = (-delta[0] * ray.dir[0] - delta[1] * ray.dir[1] - delta[2] * ray.dir[2]
+            + d.sqrt())
+            / (dir_squared[0] + dir_squared[1] + dir_squared[2]);
+        let mut t2 = f32::MAX;
+        if d > EPSILON {
+            t2 =
+                (-delta[0] * ray.dir[0] - delta[1] * ray.dir[1] - delta[2] * ray.dir[2] - d.sqrt())
+                    / (dir_squared[0] + dir_squared[1] + dir_squared[2]);
+        }
+        Some(t1.min(t2))
+    }
+
+    fn sphere_normal(&self, point: &Point<Real>) -> Vector<Real> {
+        let norm = Vector::new(
+            point[0] - self.sphere_pos[0],
+            point[1] - self.sphere_pos[1],
+            point[2] - self.sphere_pos[2],
+        );
+        norm / norm.magnitude()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn intersects_sphere() {
+        let scene = FixedScene::new();
+        assert!(scene
+            .intersects_sphere(&Ray::new(
+                Point::new(0.0, 0.0, 0.0),
+                Vector::new(0.0, 0.0, -1.0)
+            ))
+            .is_some());
     }
 }
 
@@ -187,76 +250,87 @@ impl Scene for FixedScene {
     fn ray_color(&self, mut ray: Ray, depth: u32) -> Color {
         let mut coef_color = Color::new(1.0, 1.0, 1.0);
         let mut offset_color = Color::new(0.0, 0.0, 0.0);
-        let mut base_color = Color::new(1.0, 1.0, 1.0);
+        let base_color = Color::new(1.0, 1.0, 1.0);
 
         for _ in 0..depth {
             let mut min_toi = std::f32::MAX;
-            let mut closest_plane = None;
+            let mut closest_obstacle = None;
 
-            if ray.dir[0].abs() > EPSILON {
-                if ray.dir[0] > 0.0 {
-                    let toi = (PLANES_OFFSETS[Plane::Right as usize] - ray.origin[0]) / ray.dir[0];
-                    if toi < min_toi {
-                        min_toi = toi;
-                        closest_plane = Some(Plane::Right);
+            match self.intersects_sphere(&ray) {
+                Some(toi) if toi > MIN_TOI => {
+                    min_toi = toi;
+                    closest_obstacle = Some(Obstacle::Sphere);
+                }
+                _ => {
+                    if ray.dir[0].abs() > EPSILON {
+                        if ray.dir[0] > 0.0 {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Right as usize] - ray.origin[0])
+                                / ray.dir[0];
+                            if toi < min_toi {
+                                min_toi = toi;
+                                closest_obstacle = Some(Obstacle::Right);
+                            }
+                        } else {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Left as usize] - ray.origin[0])
+                                / ray.dir[0];
+                            if toi < min_toi {
+                                min_toi = toi;
+                                closest_obstacle = Some(Obstacle::Left);
+                            }
+                        }
                     }
-                } else {
-                    let toi = (PLANES_OFFSETS[Plane::Left as usize] - ray.origin[0]) / ray.dir[0];
-                    if toi < min_toi {
-                        min_toi = toi;
-                        closest_plane = Some(Plane::Left);
+
+                    if ray.dir[1].abs() > EPSILON {
+                        if ray.dir[1] > 0.0 {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Top as usize] - ray.origin[1])
+                                / ray.dir[1];
+                            if toi < min_toi {
+                                min_toi = toi;
+                                closest_obstacle = Some(Obstacle::Top);
+                            }
+                        } else {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Bottom as usize] - ray.origin[1])
+                                / ray.dir[1];
+                            if toi < min_toi {
+                                min_toi = toi;
+                                closest_obstacle = Some(Obstacle::Bottom);
+                            }
+                        }
+                    }
+
+                    if ray.dir[2].abs() > EPSILON {
+                        if ray.dir[2] > 0.0 {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Near as usize] - ray.origin[2])
+                                / ray.dir[2];
+                            if toi < min_toi {
+                                closest_obstacle = Some(Obstacle::Near);
+                            }
+                        } else {
+                            let toi = (OBSTACLE_OFFSETS[Obstacle::Far as usize] - ray.origin[2])
+                                / ray.dir[2];
+                            if toi < min_toi {
+                                closest_obstacle = Some(Obstacle::Far);
+                            }
+                        }
                     }
                 }
             }
 
-            if ray.dir[1].abs() > EPSILON {
-                if ray.dir[1] > 0.0 {
-                    let toi = (PLANES_OFFSETS[Plane::Top as usize] - ray.origin[1]) / ray.dir[1];
-                    if toi < min_toi {
-                        min_toi = toi;
-                        closest_plane = Some(Plane::Top);
-                    }
-                } else {
-                    let toi = (PLANES_OFFSETS[Plane::Bottom as usize] - ray.origin[1]) / ray.dir[1];
-                    if toi < min_toi {
-                        min_toi = toi;
-                        closest_plane = Some(Plane::Bottom);
-                    }
-                }
-            }
-
-            if ray.dir[2].abs() > EPSILON {
-                if ray.dir[2] > 0.0 {
-                    let toi = (PLANES_OFFSETS[Plane::Near as usize] - ray.origin[2]) / ray.dir[2];
-                    if toi < min_toi {
-                        closest_plane = Some(Plane::Near);
-                    }
-                } else {
-                    let toi = (PLANES_OFFSETS[Plane::Far as usize] - ray.origin[2]) / ray.dir[2];
-                    if toi < min_toi {
-                        closest_plane = Some(Plane::Far);
-                    }
-                }
-            }
-
-            if let Some(plane) = closest_plane {
+            if let Some(obstacle) = closest_obstacle {
                 let poi = ray.point_at(min_toi);
-                if plane != Plane::Far {
-                    let normal = PLANES_NORMALS[plane as usize];
-                    let reflection_dir = ray.dir - 2.0 * ray.dir.dot(&normal) * normal;
-                    ray = Ray {
-                        origin: poi,
-                        dir: reflection_dir,
-                    };
-                    offset_color += coef_color * PLANES_COLORS[plane as usize];
-                    coef_color *= Color::new(0.2, 0.2, 0.2);
+                let normal;
+                if obstacle == Obstacle::Sphere {
+                    normal = self.sphere_normal(&poi);
                 } else {
-                    if (poi[0] - poi[1]).abs() < 0.2 {
-                        base_color = Color::new(0.0, 0.0, 0.0);
-                    } else {
-                        base_color = PLANES_COLORS[plane as usize];
-                    }
+                    normal = OBSTACLE_NORMALS[obstacle as usize];
                 }
+                let reflection_dir = ray.dir - 2.0 * ray.dir.dot(&normal) * normal;
+                ray = Ray {
+                    origin: poi,
+                    dir: reflection_dir,
+                };
+                offset_color += coef_color * OBSTACLE_COLORS[obstacle as usize];
+                coef_color *= Color::new(0.5, 0.5, 0.5);
             }
         }
 
