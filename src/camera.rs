@@ -13,13 +13,14 @@ impl Camera {
         let view_port_height = view_port_width / aspect_ratio;
 
         Camera {
-            origin: Point::new(1.0, 0.3, 0.0),
+            origin: Point::new(0.0, 0.0, 0.0),
             view_port_base: Vector::new(-view_port_width / 2.0, view_port_height / 2.0, -1.0),
             view_port_x_axis: Vector::new(view_port_width, 0.0, 0.0),
             view_port_y_axis: Vector::new(0.0, -view_port_height, 0.0),
         }
     }
 
+    #[inline(always)]
     pub fn pixel_ray(&self, x_offset: f32, y_offset: f32) -> Ray {
         Ray {
             origin: self.origin,

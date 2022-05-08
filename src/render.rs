@@ -1,4 +1,4 @@
-use crate::{color::Color, Buffer, Camera, Scene};
+use crate::{camera::Camera, color::Color, scene::Scene, Buffer};
 use image::Rgb;
 use rand::distributions::Uniform;
 use rand::prelude::Distribution;
@@ -14,14 +14,21 @@ pub fn render(
     let (width, height) = buffer.dimensions();
     let mut rng = thread_rng();
     let unit_distr = Uniform::new(0.0f32, 1.0f32);
+    let mut x_deltas = vec![0.0f32; samples_per_pixel as usize];
+    let mut y_deltas = vec![0.0f32; samples_per_pixel as usize];
+
+    for sample in 0..samples_per_pixel {
+        x_deltas[sample as usize] = unit_distr.sample(&mut rng);
+        y_deltas[sample as usize] = unit_distr.sample(&mut rng);
+    }
 
     for x in 0..width {
         for y in 0..height {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _ in 0..samples_per_pixel {
+            for sample in 0..samples_per_pixel {
                 let ray = camera.pixel_ray(
-                    (x as f32 + unit_distr.sample(&mut rng)) / width as f32,
-                    (y as f32 + unit_distr.sample(&mut rng)) / height as f32,
+                    (x as f32 + x_deltas[sample as usize]) / width as f32,
+                    (y as f32 + y_deltas[sample as usize]) / height as f32,
                 );
                 pixel_color += scene.ray_color(ray, max_depth);
             }

@@ -1,5 +1,3 @@
-use std::f32::MIN;
-
 use parry3d::math::{Isometry, Point, Real, UnitVector, Vector};
 use parry3d::query::Ray;
 use parry3d::shape::{Ball, Cuboid};
@@ -194,7 +192,7 @@ impl FixedScene {
         }
     }
 
-    fn intersects_sphere(&self, ray: &Ray) -> Option<f32> {
+    pub fn intersects_sphere(&self, ray: &Ray) -> Option<f32> {
         let dir_squared = Point::new(
             ray.dir[0] * ray.dir[0],
             ray.dir[1] * ray.dir[1],
@@ -218,7 +216,12 @@ impl FixedScene {
                 (-delta[0] * ray.dir[0] - delta[1] * ray.dir[1] - delta[2] * ray.dir[2] - d.sqrt())
                     / (dir_squared[0] + dir_squared[1] + dir_squared[2]);
         }
-        Some(t1.min(t2))
+        let t = t1.max(0.0).min(t2.max(0.0));
+        if t < EPSILON {
+            None
+        } else {
+            Some(t)
+        }
     }
 
     fn sphere_normal(&self, point: &Point<Real>) -> Vector<Real> {
@@ -257,7 +260,7 @@ impl Scene for FixedScene {
             let mut closest_obstacle = None;
 
             match self.intersects_sphere(&ray) {
-                Some(toi) if toi > MIN_TOI => {
+                Some(toi) => {
                     min_toi = toi;
                     closest_obstacle = Some(Obstacle::Sphere);
                 }
@@ -303,18 +306,23 @@ impl Scene for FixedScene {
                             let toi = (OBSTACLE_OFFSETS[Obstacle::Near as usize] - ray.origin[2])
                                 / ray.dir[2];
                             if toi < min_toi {
+                                min_toi = toi;
                                 closest_obstacle = Some(Obstacle::Near);
                             }
                         } else {
                             let toi = (OBSTACLE_OFFSETS[Obstacle::Far as usize] - ray.origin[2])
                                 / ray.dir[2];
                             if toi < min_toi {
+                                min_toi = toi;
                                 closest_obstacle = Some(Obstacle::Far);
                             }
                         }
                     }
                 }
             }
+            // if let Some(obstacle) = closest_obstacle {
+            //     return OBSTACLE_COLORS[obstacle as usize];
+            // }
 
             if let Some(obstacle) = closest_obstacle {
                 let poi = ray.point_at(min_toi);

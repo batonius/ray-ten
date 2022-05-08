@@ -1,7 +1,7 @@
 use num::clamp;
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color([f32; 3]);
 
 impl Color {
@@ -32,12 +32,12 @@ impl Color {
 
     #[allow(dead_code)]
     pub fn g(&self) -> f32 {
-        self.0[0]
+        self.0[1]
     }
 
     #[allow(dead_code)]
     pub fn b(&self) -> f32 {
-        self.0[0]
+        self.0[2]
     }
 
     #[allow(dead_code)]
