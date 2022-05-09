@@ -1,23 +1,24 @@
 use crate::{
-    color::Color,
     simd::camera::Camera,
     simd::scene::Scene,
     simd::{Points, Reals, LANES},
     Buffer,
 };
-use image::Rgb;
+use rayon::prelude::*;
 
 use rand::distributions::Uniform;
 use rand::prelude::Distribution;
 use rand::thread_rng;
 
-pub fn render(
-    scene: &impl Scene,
+pub fn render<S>(
+    scene: &S,
     camera: &Camera,
     buffer: &mut Buffer,
     samples_per_pixel: u32,
     max_depth: u32,
-) {
+) where
+    S: Scene + Sync + Send,
+{
     let (width, height) = buffer.dimensions();
     let mut rng = thread_rng();
     let unit_distr = Uniform::new(0.0f32, 1.0f32);
@@ -31,14 +32,21 @@ pub fn render(
         }
     }
 
-    for y in 0..height {
-        for x in 0..(width / LANES as u32) {
+    let lanes_per_line = width as usize / LANES;
+    let bytes_per_pixel = 3;
+
+    buffer
+        .par_chunks_exact_mut(LANES * bytes_per_pixel)
+        .enumerate()
+        .for_each(|(n, slice)| {
+            let y = n / lanes_per_line;
+            let x = n % lanes_per_line;
             let mut pixels_colors = Points::splat(0.0, 0.0, 0.0);
             for sample in 0..samples_per_pixel {
                 let mut x_offsets = Reals::splat(0.0);
                 let mut y_offsets = Reals::splat(y as f32);
                 for i in 0..LANES {
-                    x_offsets[i] = (x * LANES as u32 + i as u32) as f32;
+                    x_offsets[i] = (x * LANES + i) as f32;
                 }
 
                 x_offsets += &x_deltas[sample as usize];
@@ -52,16 +60,9 @@ pub fn render(
             pixels_colors /= &Reals::splat(samples_per_pixel as f32);
             pixels_colors = pixels_colors.sqrt().normalize();
             for i in 0..LANES {
-                buffer.put_pixel(
-                    x * LANES as u32 + i as u32,
-                    y,
-                    Rgb([
-                        (pixels_colors.xs[i] * 255.0) as u8,
-                        (pixels_colors.ys[i] * 255.0) as u8,
-                        (pixels_colors.zs[i] * 255.0) as u8,
-                    ]),
-                );
+                slice[i * bytes_per_pixel] = (pixels_colors.xs[i] * 255.0) as u8;
+                slice[i * bytes_per_pixel + 1] = (pixels_colors.ys[i] * 255.0) as u8;
+                slice[i * bytes_per_pixel + 2] = (pixels_colors.zs[i] * 255.0) as u8;
             }
-        }
-    }
+        });
 }

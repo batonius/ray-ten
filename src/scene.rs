@@ -320,9 +320,6 @@ impl Scene for FixedScene {
                     }
                 }
             }
-            // if let Some(obstacle) = closest_obstacle {
-            //     return OBSTACLE_COLORS[obstacle as usize];
-            // }
 
             if let Some(obstacle) = closest_obstacle {
                 let poi = ray.point_at(min_toi);
