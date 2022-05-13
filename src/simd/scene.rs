@@ -33,9 +33,7 @@ enum Obstacle {
     None,
 }
 
-const OBSTACLE_COUNT: usize = Obstacle::None as usize + 1;
-const EPSILON: f32 = 0.001;
-const EPSILONS: Reals = Reals::splat(EPSILON);
+const OBSTACLE_COUNT: usize = Obstacle::None as usize;
 const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
     Points::splat(0.0, -1.0, 0.0),
     Points::splat(0.0, 1.0, 0.0),
@@ -43,7 +41,6 @@ const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
     Points::splat(-1.0, 0.0, 0.0),
     Points::splat(0.0, 0.0, 1.0),
     Points::splat(0.0, 0.0, -1.0),
-    Points::splat(0.0, 0.0, 0.0),
     Points::splat(0.0, 0.0, 0.0),
 ];
 
@@ -54,17 +51,25 @@ const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
     Points::splat(0.5, 0.0, 0.0),
     Points::splat(0.0, 0.0, 0.5),
     Points::splat(0.0, 0.5, 0.0),
-    Points::splat(0.5, 0.5, 0.5),
-    Points::splat(1.0, 1.0, 1.0),
+    Points::splat(0.2, 0.2, 0.2),
+];
+
+const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [
+    Reals::splat(0.1),
+    Reals::splat(0.1),
+    Reals::splat(0.1),
+    Reals::splat(0.1),
+    Reals::splat(0.1),
+    Reals::splat(0.1),
+    Reals::splat(0.5),
 ];
 
 const OBSTACLE_OFFSETS: [Reals; OBSTACLE_COUNT] = [
     Reals::splat(2.0),
     Reals::splat(-2.0),
-    Reals::splat(-2.0),
-    Reals::splat(2.0),
-    Reals::splat(-8.0),
-    Reals::splat(0.0),
+    Reals::splat(-4.0),
+    Reals::splat(4.0),
+    Reals::splat(-16.0),
     Reals::splat(0.0),
     Reals::splat(0.0),
 ];
@@ -79,6 +84,7 @@ fn intersect_plane(
     min_toi: &mut Reals,
     obstacle_colors: &mut Points,
     obstacle_normals: &mut Points,
+    obstacle_reflectances: &mut Reals,
     origins: &Reals,
     dirs: &Reals,
 ) {
@@ -93,6 +99,15 @@ fn intersect_plane(
     obstacle_normals.xs = mask.select(OBSTACLE_NORMALS[obstacle as usize].xs, obstacle_normals.xs);
     obstacle_normals.ys = mask.select(OBSTACLE_NORMALS[obstacle as usize].ys, obstacle_normals.ys);
     obstacle_normals.zs = mask.select(OBSTACLE_NORMALS[obstacle as usize].zs, obstacle_normals.zs);
+
+    obstacle_colors.xs = mask.select(OBSTACLE_COLORS[obstacle as usize].xs, obstacle_colors.xs);
+    obstacle_colors.ys = mask.select(OBSTACLE_COLORS[obstacle as usize].ys, obstacle_colors.ys);
+    obstacle_colors.zs = mask.select(OBSTACLE_COLORS[obstacle as usize].zs, obstacle_colors.zs);
+
+    *obstacle_reflectances = mask.select(
+        OBSTACLE_REFLECTANCES[obstacle as usize],
+        *obstacle_reflectances,
+    );
 }
 
 #[inline(always)]
@@ -101,6 +116,7 @@ fn intersect_sphere(
     min_toi: &mut Reals,
     obstacle_colors: &mut Points,
     obstacle_normals: &mut Points,
+    obstacle_reflectances: &mut Reals,
     origins: &Points,
     dirs: &Points,
 ) -> Mask {
@@ -155,6 +171,11 @@ fn intersect_sphere(
     obstacle_normals.ys = mask.select(normals.ys, obstacle_normals.ys);
     obstacle_normals.zs = mask.select(normals.zs, obstacle_normals.zs);
 
+    *obstacle_reflectances = mask.select(
+        OBSTACLE_REFLECTANCES[Obstacle::Sphere as usize],
+        *obstacle_reflectances,
+    );
+
     return mask;
 }
 
@@ -167,6 +188,7 @@ impl Scene for FixedScene {
 
         for _ in 0..depth {
             let mut min_toi = Reals::splat(std::f32::MAX);
+            let mut obstacle_reflectances = Reals::splat(std::f32::MAX);
             let mut obstacle_colors = Points::splat(0.0, 0.0, 0.0);
             let mut obstacle_normals = Points::splat(0.0, 0.0, 0.0);
 
@@ -175,6 +197,7 @@ impl Scene for FixedScene {
                 &mut min_toi,
                 &mut obstacle_colors,
                 &mut obstacle_normals,
+                &mut obstacle_reflectances,
                 &rays.origins,
                 &rays.dirs,
             );
@@ -185,6 +208,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.xs,
                     &rays.dirs.xs,
                 );
@@ -194,6 +218,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.xs,
                     &rays.dirs.xs,
                 );
@@ -203,6 +228,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.ys,
                     &rays.dirs.ys,
                 );
@@ -212,6 +238,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.ys,
                     &rays.dirs.ys,
                 );
@@ -221,6 +248,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.zs,
                     &rays.dirs.zs,
                 );
@@ -230,6 +258,7 @@ impl Scene for FixedScene {
                     &mut min_toi,
                     &mut obstacle_colors,
                     &mut obstacle_normals,
+                    &mut obstacle_reflectances,
                     &rays.origins.zs,
                     &rays.dirs.zs,
                 );
@@ -242,7 +271,7 @@ impl Scene for FixedScene {
             rays = Rays::new(pois, reflection_dirs);
 
             offset_colors += &(&coef_colors * &obstacle_colors);
-            coef_colors *= &Points::splat(0.5, 0.5, 0.5);
+            coef_colors *= &obstacle_reflectances;
         }
 
         coef_colors *= &base_colors;
