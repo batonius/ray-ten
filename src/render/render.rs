@@ -1,7 +1,7 @@
 use crate::{
-    simd::camera::Camera,
-    simd::scene::Scene,
-    simd::{Points, Reals, LANES},
+    render::camera::Camera,
+    render::scene::Scene,
+    render::{Points, Reals, LANES},
     Buffer,
 };
 use rayon::prelude::*;
@@ -33,7 +33,7 @@ pub fn render<S>(
     }
 
     let lanes_per_line = width as usize / LANES;
-    let bytes_per_pixel = 3;
+    let bytes_per_pixel = 4;
 
     buffer
         .par_chunks_exact_mut(LANES * bytes_per_pixel)

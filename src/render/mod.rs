@@ -9,15 +9,7 @@ pub const LANES: usize = 8usize;
 
 pub type Real = f32;
 pub type Reals = Simd<Real, LANES>;
-pub type Ints = Simd<u32, LANES>;
 pub type Mask = SimdMask<i32, LANES>;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Point {
-    x: Real,
-    y: Real,
-    z: Real,
-}
 
 #[derive(Clone, Debug)]
 pub struct Points {

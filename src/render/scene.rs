@@ -1,9 +1,5 @@
-use crate::color::Color;
-use crate::simd::{Ints, Mask, Points, Rays, Reals};
-use std::io::Read;
+use crate::render::{Mask, Points, Rays, Reals};
 use std::simd::StdFloat;
-
-use super::LANES;
 
 pub trait Scene {
     fn rays_colors(&self, rays: Rays, depth: u32) -> Points;
@@ -16,8 +12,14 @@ pub struct FixedScene {
 impl FixedScene {
     pub fn new() -> Self {
         FixedScene {
-            sphere_pos: Points::splat(-1.0, 0.7, -4.0),
+            sphere_pos: Points::splat(-2.0, -1.0, -6.0),
         }
+    }
+
+    pub fn move_sphere(&mut self, delta_x: f32, delta_y: f32, delta_z: f32) {
+        self.sphere_pos.xs += Reals::splat(delta_x);
+        self.sphere_pos.ys += Reals::splat(delta_y);
+        self.sphere_pos.zs += Reals::splat(delta_z);
     }
 }
 
@@ -45,13 +47,13 @@ const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
 ];
 
 const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
-    Points::splat(0.5, 0.5, 0.0),
-    Points::splat(0.0, 0.5, 0.5),
-    Points::splat(0.5, 0.0, 0.5),
-    Points::splat(0.5, 0.0, 0.0),
-    Points::splat(0.0, 0.0, 0.5),
-    Points::splat(0.0, 0.5, 0.0),
-    Points::splat(0.2, 0.2, 0.2),
+    Points::splat(0.9, 0.9, 0.0),
+    Points::splat(0.0, 0.9, 0.9),
+    Points::splat(0.9, 0.0, 0.9),
+    Points::splat(0.9, 0.0, 0.0),
+    Points::splat(0.0, 0.0, 0.9),
+    Points::splat(0.0, 0.9, 0.0),
+    Points::splat(0.5, 0.5, 0.5),
 ];
 
 const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [

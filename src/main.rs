@@ -1,55 +1,48 @@
 #![feature(portable_simd)]
 
 use anyhow::Result;
-use image::{ImageBuffer, Rgb};
-use std::time::Instant;
-
-mod camera;
-mod color;
-mod material;
-mod render;
-mod scene;
-mod simd;
-
-use camera::Camera;
-use render::render;
-use scene::{DynamicScene, FixedScene, Scene};
+use image::{
+    codecs::gif::{GifEncoder, Repeat},
+    Frame, ImageBuffer, Rgba,
+};
+use std::fs::File;
 
 const IMAGE_WIDTH: u32 = 1600;
 const IMAGE_HEIGHT: u32 = 900;
 const MAX_DEPTH: u32 = 5;
 const SAMPLES_PER_PIXEL: u32 = 16;
 
-pub type Buffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
+pub type Buffer = ImageBuffer<Rgba<u8>, Vec<u8>>;
 
-use simd::{
-    camera::Camera as SimdCamera, render::render as simd_render,
-    scene::FixedScene as SimdFixedScene,
-};
+mod render;
+
+use render::{camera::Camera, render::render, scene::FixedScene};
 
 fn main() -> Result<()> {
-    let mut buffer = Buffer::from_pixel(IMAGE_WIDTH, IMAGE_HEIGHT, Rgb([255u8, 255, 255]));
+    let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
+    let mut scene = FixedScene::new();
+    let mut buffer = Buffer::from_pixel(IMAGE_WIDTH, IMAGE_HEIGHT, Rgba([255u8; 4]));
 
-    // let camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32);
-    // // let scene = DynamicScene::new();
-    // let scene = FixedScene::new();
-    // let now = Instant::now();
+    // scene.move_sphere(0.05, 0.05, 0.05);
     // render(&scene, &camera, &mut buffer, SAMPLES_PER_PIXEL, MAX_DEPTH);
+    // buffer.save("out.png")?;
 
-    let simd_camera = SimdCamera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32);
-    let simd_scene = SimdFixedScene::new();
-    let now = Instant::now();
-    simd_render(
-        &simd_scene,
-        &simd_camera,
-        &mut buffer,
-        SAMPLES_PER_PIXEL,
-        MAX_DEPTH,
-    );
-
-    let elapsed = now.elapsed().as_micros();
-    println!("Elapsed {elapsed}us");
-    buffer.save("out.png")?;
+    let mut frame = Frame::new(buffer);
+    let file = File::create("out.gif")?;
+    let mut encoder = GifEncoder::new_with_speed(file, 30);
+    encoder.set_repeat(Repeat::Infinite)?;
+    for _ in 0..100 {
+        render(
+            &scene,
+            &camera,
+            frame.buffer_mut(),
+            SAMPLES_PER_PIXEL,
+            MAX_DEPTH,
+        );
+        camera.move_origin(-0.05, 0.05);
+        scene.move_sphere(0.05, 0.05, 0.07);
+        encoder.encode_frame(frame.clone())?;
+    }
 
     Ok(())
 }
