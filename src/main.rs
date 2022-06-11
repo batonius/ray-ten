@@ -1,48 +1,67 @@
 #![feature(portable_simd)]
 
-use anyhow::Result;
-use image::{
-    codecs::gif::{GifEncoder, Repeat},
-    Frame, ImageBuffer, Rgba,
-};
-use std::fs::File;
+use macroquad::prelude::*;
 
-const IMAGE_WIDTH: u32 = 1600;
-const IMAGE_HEIGHT: u32 = 900;
+const IMAGE_WIDTH: u16 = 1600;
+const IMAGE_HEIGHT: u16 = 900;
 const MAX_DEPTH: u32 = 5;
-const SAMPLES_PER_PIXEL: u32 = 16;
-
-pub type Buffer = ImageBuffer<Rgba<u8>, Vec<u8>>;
+const SAMPLES_PER_PIXEL: u32 = 4;
 
 mod render;
 
 use render::{camera::Camera, render::render, scene::FixedScene};
 
-fn main() -> Result<()> {
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "ray ten".to_owned(),
+        fullscreen: false,
+        window_height: IMAGE_HEIGHT as i32,
+        window_width: IMAGE_WIDTH as i32,
+        window_resizable: false,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
     let mut scene = FixedScene::new();
-    let mut buffer = Buffer::from_pixel(IMAGE_WIDTH, IMAGE_HEIGHT, Rgba([255u8; 4]));
+    let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
+    let texture = Texture2D::from_image(&image);
 
-    // scene.move_sphere(0.05, 0.05, 0.05);
-    // render(&scene, &camera, &mut buffer, SAMPLES_PER_PIXEL, MAX_DEPTH);
-    // buffer.save("out.png")?;
-
-    let mut frame = Frame::new(buffer);
-    let file = File::create("out.gif")?;
-    let mut encoder = GifEncoder::new_with_speed(file, 30);
-    encoder.set_repeat(Repeat::Infinite)?;
-    for _ in 0..100 {
+    loop {
+        if is_key_down(KeyCode::Escape) {
+            break;
+        }
+        let mut cam_delta = (0f32, 0f32);
+        if is_key_down(KeyCode::Up) {
+            cam_delta.1 += 0.4;
+        }
+        if is_key_down(KeyCode::Down) {
+            cam_delta.1 -= 0.4;
+        }
+        if is_key_down(KeyCode::Left) {
+            cam_delta.0 -= 0.4;
+        }
+        if is_key_down(KeyCode::Right) {
+            cam_delta.0 += 0.4;
+        }
+        // scene.move_sphere(0.001, 0.001, 0.0014);
+        camera.move_origin(
+            get_frame_time() * cam_delta.0,
+            get_frame_time() * cam_delta.1,
+        );
         render(
             &scene,
             &camera,
-            frame.buffer_mut(),
+            image.get_image_data_mut(),
+            (IMAGE_WIDTH, IMAGE_HEIGHT),
             SAMPLES_PER_PIXEL,
             MAX_DEPTH,
         );
-        camera.move_origin(-0.05, 0.05);
-        scene.move_sphere(0.05, 0.05, 0.07);
-        encoder.encode_frame(frame.clone())?;
+        texture.update(&image);
+        draw_texture(texture, 0.0, 0.0, WHITE);
+        draw_text(format!("FPS: {}", get_fps()).as_str(), 0., 16., 32., BLACK);
+        next_frame().await
     }
-
-    Ok(())
 }

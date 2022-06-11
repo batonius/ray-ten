@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-image = "0.24"
 anyhow = "1"
 rand = "0.8"
 num = "0.4"
 rayon = "1.5"
+macroquad = { version ="0.3", default-features=false, features = [] }
 
 [profile.release]
 lto = true

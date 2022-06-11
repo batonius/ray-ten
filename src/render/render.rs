@@ -2,7 +2,6 @@ use crate::{
     render::camera::Camera,
     render::scene::Scene,
     render::{Points, Reals, LANES},
-    Buffer,
 };
 use rayon::prelude::*;
 
@@ -13,13 +12,14 @@ use rand::thread_rng;
 pub fn render<S>(
     scene: &S,
     camera: &Camera,
-    buffer: &mut Buffer,
+    buffer: &mut [[u8; 4]],
+    dimensions: (u16, u16),
     samples_per_pixel: u32,
     max_depth: u32,
 ) where
     S: Scene + Sync + Send,
 {
-    let (width, height) = buffer.dimensions();
+    let (width, height) = dimensions;
     let mut rng = thread_rng();
     let unit_distr = Uniform::new(0.0f32, 1.0f32);
     let mut x_deltas = vec![Reals::splat(0.0); samples_per_pixel as usize];
@@ -33,10 +33,9 @@ pub fn render<S>(
     }
 
     let lanes_per_line = width as usize / LANES;
-    let bytes_per_pixel = 4;
 
     buffer
-        .par_chunks_exact_mut(LANES * bytes_per_pixel)
+        .par_chunks_exact_mut(LANES)
         .enumerate()
         .for_each(|(n, slice)| {
             let y = n / lanes_per_line;
@@ -60,9 +59,9 @@ pub fn render<S>(
             pixels_colors /= &Reals::splat(samples_per_pixel as f32);
             pixels_colors = pixels_colors.sqrt().normalize();
             for i in 0..LANES {
-                slice[i * bytes_per_pixel] = (pixels_colors.xs[i] * 255.0) as u8;
-                slice[i * bytes_per_pixel + 1] = (pixels_colors.ys[i] * 255.0) as u8;
-                slice[i * bytes_per_pixel + 2] = (pixels_colors.zs[i] * 255.0) as u8;
+                slice[i][0] = (pixels_colors.xs[i] * 255.0) as u8;
+                slice[i][1] = (pixels_colors.ys[i] * 255.0) as u8;
+                slice[i][2] = (pixels_colors.zs[i] * 255.0) as u8;
             }
         });
 }
