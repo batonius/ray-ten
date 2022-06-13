@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 rand = "0.8"
-num = "0.4"
 rayon = "1.5"
 macroquad = { version ="0.3", default-features=false, features = [] }
 

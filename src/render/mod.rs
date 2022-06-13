@@ -11,6 +11,18 @@ pub type Real = f32;
 pub type Reals = Simd<Real, LANES>;
 pub type Mask = SimdMask<i32, LANES>;
 
+#[inline(always)]
+pub fn update_reals_if(values: &mut Reals, mask: Mask, update_with: Reals) {
+    *values = mask.select(update_with, *values);
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Axis {
+    XS,
+    YS,
+    ZS,
+}
+
 #[derive(Clone, Debug)]
 pub struct Points {
     xs: Reals,
@@ -23,6 +35,7 @@ impl Points {
         Points { xs, ys, zs }
     }
 
+    #[inline(always)]
     pub const fn splat(x: f32, y: f32, z: f32) -> Self {
         Points {
             xs: Reals::splat(x),
@@ -31,6 +44,16 @@ impl Points {
         }
     }
 
+    #[inline(always)]
+    pub fn get_axis(&self, axis: Axis) -> &Reals {
+        match axis {
+            Axis::XS => &self.xs,
+            Axis::YS => &self.ys,
+            Axis::ZS => &self.zs,
+        }
+    }
+
+    #[inline(always)]
     pub fn sqrt(self) -> Self {
         Points {
             xs: self.xs.sqrt(),
@@ -39,6 +62,7 @@ impl Points {
         }
     }
 
+    #[inline(always)]
     pub fn normalize(self) -> Self {
         let zeros = Reals::splat(0.0);
         let ones = Reals::splat(1.0);
@@ -49,8 +73,16 @@ impl Points {
         }
     }
 
+    #[inline(always)]
     pub fn dot(&self, rhs: &Points) -> Reals {
         self.xs * rhs.xs + self.ys * rhs.ys + self.zs * rhs.zs
+    }
+
+    #[inline(always)]
+    pub fn update_if(&mut self, mask: Mask, update_with: &Points) {
+        self.xs = mask.select(update_with.xs, self.xs);
+        self.ys = mask.select(update_with.ys, self.ys);
+        self.zs = mask.select(update_with.zs, self.zs);
     }
 }
 

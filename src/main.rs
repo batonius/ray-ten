@@ -25,7 +25,7 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
-    let mut scene = FixedScene::new();
+    let scene = FixedScene::new();
     let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
     let texture = Texture2D::from_image(&image);
 
