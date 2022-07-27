@@ -36,10 +36,6 @@ pub struct Points {
 }
 
 impl Points {
-    pub const fn new(xs: Reals, ys: Reals, zs: Reals) -> Self {
-        Points { xs, ys, zs }
-    }
-
     #[inline(always)]
     pub const fn splat(x: f32, y: f32, z: f32) -> Self {
         Points {
@@ -79,12 +75,12 @@ impl Points {
     }
 
     #[inline(always)]
-    pub fn dot(&self, rhs: &Points) -> Reals {
+    pub fn dot(&self, rhs: Points) -> Reals {
         self.xs * rhs.xs + self.ys * rhs.ys + self.zs * rhs.zs
     }
 
     #[inline(always)]
-    pub fn update_if(&mut self, mask: Mask, update_with: &Points) {
+    pub fn update_if(&mut self, mask: Mask, update_with: Points) {
         self.xs = mask.select(update_with.xs, self.xs);
         self.ys = mask.select(update_with.ys, self.ys);
         self.zs = mask.select(update_with.zs, self.zs);

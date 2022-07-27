@@ -53,7 +53,7 @@ pub fn render<S>(
 
                 x_offsets /= Reals::splat(width as f32);
                 y_offsets /= Reals::splat(height as f32);
-                let rays = camera.pixel_rays(&x_offsets, &y_offsets);
+                let rays = camera.pixel_rays(x_offsets, y_offsets);
                 pixels_colors += scene.rays_colors(rays, max_depth);
             }
             pixels_colors /= Reals::splat(samples_per_pixel as f32);

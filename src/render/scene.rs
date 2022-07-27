@@ -52,10 +52,10 @@ impl RaysProjections {
     fn with_axis_aligned_plane(
         &mut self,
         axis: Axis,
-        offset_within_axis: &Reals,
-        normal: &Points,
-        color: &Points,
-        reflectance: &Reals,
+        offset_within_axis: Reals,
+        normal: Points,
+        color: Points,
+        reflectance: Reals,
     ) {
         let toi =
             (offset_within_axis - self.rays.origins.get_axis(axis)) / self.rays.dirs.get_axis(axis);
@@ -65,20 +65,20 @@ impl RaysProjections {
         self.obstacle_colors.update_if(mask, color);
         self.obstacle_normals.update_if(mask, normal);
 
-        update_reals_if(&mut self.obstacle_reflectances, mask, *reflectance);
+        update_reals_if(&mut self.obstacle_reflectances, mask, reflectance);
     }
 
     #[inline(always)]
     fn with_sphere(
         &mut self,
-        sphere_pos: &Points,
+        sphere_pos: Points,
         sphere_radius: f32,
-        color: &Points,
-        reflectance: &Reals,
+        color: Points,
+        reflectance: Reals,
     ) {
         let dirs_squared = self.rays.dirs * self.rays.dirs;
         let dirs_squared_sum = dirs_squared.xs + dirs_squared.ys + dirs_squared.zs;
-        let deltas = self.rays.origins - *sphere_pos;
+        let deltas = self.rays.origins - sphere_pos;
         let r_squared = Reals::splat(sphere_radius * sphere_radius);
         let mut d = r_squared * dirs_squared_sum;
         let a = self.rays.dirs.xs * deltas.ys - self.rays.dirs.ys * deltas.xs;
@@ -110,20 +110,21 @@ impl RaysProjections {
         self.obstacle_colors.update_if(mask, color);
 
         let pois = self.rays.origins + self.rays.dirs * self.min_toi;
-        let mut normals = pois - *sphere_pos;
+        let mut normals = pois - sphere_pos;
         let magnitudes =
             (normals.xs * normals.xs + normals.ys * normals.ys + normals.zs * normals.zs).sqrt();
         normals /= magnitudes;
 
-        self.obstacle_normals.update_if(mask, &normals);
-        update_reals_if(&mut self.obstacle_reflectances, mask, *reflectance);
+        self.obstacle_normals.update_if(mask, normals);
+        update_reals_if(&mut self.obstacle_reflectances, mask, reflectance);
     }
 
     #[inline(always)]
     fn reflect(&mut self) {
         let pois = self.rays.origins + self.rays.dirs * self.min_toi;
         let reflection_dirs = self.rays.dirs
-            - ((self.obstacle_normals * self.rays.dirs.dot(&self.obstacle_normals))
+            - (self.obstacle_normals
+                * self.rays.dirs.dot(self.obstacle_normals)
                 * Reals::splat(2.0));
 
         self.rays = Rays::new(pois, reflection_dirs);
@@ -204,10 +205,10 @@ impl Scene for FixedScene {
         let mut projections = RaysProjections::new(rays);
         for _ in 0..depth {
             projections.with_sphere(
-                &self.sphere_pos,
+                self.sphere_pos,
                 SPHERE_RADIUS,
-                &OBSTACLE_COLORS[Obstacle::Sphere as usize],
-                &OBSTACLE_REFLECTANCES[Obstacle::Sphere as usize],
+                OBSTACLE_COLORS[Obstacle::Sphere as usize],
+                OBSTACLE_REFLECTANCES[Obstacle::Sphere as usize],
             );
             for (obstacle, axis) in [
                 (Obstacle::Top, Axis::YS),
@@ -220,10 +221,10 @@ impl Scene for FixedScene {
                 let obstacle = obstacle as usize;
                 projections.with_axis_aligned_plane(
                     axis,
-                    &OBSTACLE_OFFSETS[obstacle],
-                    &OBSTACLE_NORMALS[obstacle],
-                    &OBSTACLE_COLORS[obstacle],
-                    &OBSTACLE_REFLECTANCES[obstacle],
+                    OBSTACLE_OFFSETS[obstacle],
+                    OBSTACLE_NORMALS[obstacle],
+                    OBSTACLE_COLORS[obstacle],
+                    OBSTACLE_REFLECTANCES[obstacle],
                 )
             }
             projections.reflect();
