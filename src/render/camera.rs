@@ -27,8 +27,8 @@ impl Camera {
 
     pub fn pixel_rays(&self, x_offsets: &Reals, y_offsets: &Reals) -> Rays {
         let mut dirs = self.view_port_base.clone();
-        dirs += &(&self.view_port_x_axis * x_offsets);
-        dirs += &(&self.view_port_y_axis * y_offsets);
+        dirs += self.view_port_x_axis * *x_offsets;
+        dirs += self.view_port_y_axis * *y_offsets;
         Rays {
             origins: self.origin.clone(),
             dirs,

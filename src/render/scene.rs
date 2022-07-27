@@ -76,9 +76,9 @@ impl RaysProjections {
         color: &Points,
         reflectance: &Reals,
     ) {
-        let dirs_squared = &self.rays.dirs * &self.rays.dirs;
+        let dirs_squared = self.rays.dirs * self.rays.dirs;
         let dirs_squared_sum = dirs_squared.xs + dirs_squared.ys + dirs_squared.zs;
-        let deltas = &self.rays.origins - sphere_pos;
+        let deltas = self.rays.origins - *sphere_pos;
         let r_squared = Reals::splat(sphere_radius * sphere_radius);
         let mut d = r_squared * dirs_squared_sum;
         let a = self.rays.dirs.xs * deltas.ys - self.rays.dirs.ys * deltas.xs;
@@ -109,11 +109,11 @@ impl RaysProjections {
 
         self.obstacle_colors.update_if(mask, color);
 
-        let pois = &self.rays.origins + &(&self.rays.dirs * &self.min_toi);
-        let mut normals = &pois - sphere_pos;
+        let pois = self.rays.origins + self.rays.dirs * self.min_toi;
+        let mut normals = pois - *sphere_pos;
         let magnitudes =
             (normals.xs * normals.xs + normals.ys * normals.ys + normals.zs * normals.zs).sqrt();
-        normals /= &magnitudes;
+        normals /= magnitudes;
 
         self.obstacle_normals.update_if(mask, &normals);
         update_reals_if(&mut self.obstacle_reflectances, mask, *reflectance);
@@ -121,22 +121,22 @@ impl RaysProjections {
 
     #[inline(always)]
     fn reflect(&mut self) {
-        let pois = &self.rays.origins + &(&self.rays.dirs * &self.min_toi);
-        let reflection_dirs = &self.rays.dirs
-            - &(&(&self.obstacle_normals * &self.rays.dirs.dot(&self.obstacle_normals))
-                * &Reals::splat(2.0));
+        let pois = self.rays.origins + self.rays.dirs * self.min_toi;
+        let reflection_dirs = self.rays.dirs
+            - ((self.obstacle_normals * self.rays.dirs.dot(&self.obstacle_normals))
+                * Reals::splat(2.0));
 
         self.rays = Rays::new(pois, reflection_dirs);
 
-        self.offset_colors += &(&self.coef_colors * &self.obstacle_colors);
-        self.coef_colors *= &self.obstacle_reflectances;
+        self.offset_colors += self.coef_colors * self.obstacle_colors;
+        self.coef_colors *= self.obstacle_reflectances;
         self.min_toi = Reals::splat(std::f32::MAX);
     }
 
     #[inline(always)]
     fn finish(mut self, base_colors: Points) -> Points {
-        self.coef_colors *= &base_colors;
-        self.offset_colors += &self.coef_colors;
+        self.coef_colors *= base_colors;
+        self.offset_colors += self.coef_colors;
         self.offset_colors
     }
 }

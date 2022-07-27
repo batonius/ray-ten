@@ -28,7 +28,7 @@ pub enum Axis {
     ZS,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Points {
     xs: Reals,
     ys: Reals,
@@ -91,10 +91,10 @@ impl Points {
     }
 }
 
-impl Mul<&Reals> for &Points {
+impl Mul<Reals> for Points {
     type Output = Points;
 
-    fn mul(self, rhs: &Reals) -> Self::Output {
+    fn mul(self, rhs: Reals) -> Self::Output {
         Points {
             xs: self.xs * rhs,
             ys: self.ys * rhs,
@@ -103,18 +103,18 @@ impl Mul<&Reals> for &Points {
     }
 }
 
-impl MulAssign<&Reals> for Points {
-    fn mul_assign(&mut self, rhs: &Reals) {
+impl MulAssign<Reals> for Points {
+    fn mul_assign(&mut self, rhs: Reals) {
         self.xs *= rhs;
         self.ys *= rhs;
         self.zs *= rhs;
     }
 }
 
-impl Mul<&Points> for &Points {
+impl Mul<Points> for Points {
     type Output = Points;
 
-    fn mul(self, rhs: &Points) -> Self::Output {
+    fn mul(self, rhs: Points) -> Self::Output {
         Points {
             xs: self.xs * rhs.xs,
             ys: self.ys * rhs.ys,
@@ -123,18 +123,18 @@ impl Mul<&Points> for &Points {
     }
 }
 
-impl MulAssign<&Points> for Points {
-    fn mul_assign(&mut self, rhs: &Points) {
+impl MulAssign<Points> for Points {
+    fn mul_assign(&mut self, rhs: Points) {
         self.xs *= rhs.xs;
         self.ys *= rhs.ys;
         self.zs *= rhs.zs;
     }
 }
 
-impl Div<&Reals> for &Points {
+impl Div<Reals> for Points {
     type Output = Points;
 
-    fn div(self, rhs: &Reals) -> Self::Output {
+    fn div(self, rhs: Reals) -> Self::Output {
         Points {
             xs: self.xs / rhs,
             ys: self.ys / rhs,
@@ -143,15 +143,15 @@ impl Div<&Reals> for &Points {
     }
 }
 
-impl DivAssign<&Reals> for Points {
-    fn div_assign(&mut self, rhs: &Reals) {
+impl DivAssign<Reals> for Points {
+    fn div_assign(&mut self, rhs: Reals) {
         self.xs /= rhs;
         self.ys /= rhs;
         self.zs /= rhs;
     }
 }
 
-impl Mul<Real> for &Points {
+impl Mul<Real> for Points {
     type Output = Points;
 
     fn mul(self, rhs: Real) -> Self::Output {
@@ -171,9 +171,9 @@ impl MulAssign<Real> for Points {
     }
 }
 
-impl Add<&Points> for &Points {
+impl Add<Points> for Points {
     type Output = Points;
-    fn add(self, rhs: &Points) -> Self::Output {
+    fn add(self, rhs: Points) -> Self::Output {
         Points {
             xs: self.xs + rhs.xs,
             ys: self.ys + rhs.ys,
@@ -182,17 +182,17 @@ impl Add<&Points> for &Points {
     }
 }
 
-impl AddAssign<&Points> for Points {
-    fn add_assign(&mut self, rhs: &Points) {
+impl AddAssign<Points> for Points {
+    fn add_assign(&mut self, rhs: Points) {
         self.xs += rhs.xs;
         self.ys += rhs.ys;
         self.zs += rhs.zs;
     }
 }
 
-impl Sub<&Points> for &Points {
+impl Sub<Points> for Points {
     type Output = Points;
-    fn sub(self, rhs: &Points) -> Self::Output {
+    fn sub(self, rhs: Points) -> Self::Output {
         Points {
             xs: self.xs - rhs.xs,
             ys: self.ys - rhs.ys,
@@ -201,8 +201,8 @@ impl Sub<&Points> for &Points {
     }
 }
 
-impl SubAssign<&Points> for Points {
-    fn sub_assign(&mut self, rhs: &Points) {
+impl SubAssign<Points> for Points {
+    fn sub_assign(&mut self, rhs: Points) {
         self.xs -= rhs.xs;
         self.ys -= rhs.ys;
         self.zs -= rhs.zs;
