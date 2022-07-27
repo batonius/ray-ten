@@ -25,7 +25,7 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
-    let scene = FixedScene::new();
+    let mut scene = FixedScene::new();
     let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
     let texture = Texture2D::from_image(&image);
 
@@ -34,6 +34,7 @@ async fn main() {
             break;
         }
         let mut cam_delta = (0f32, 0f32);
+        let mut sphere_delta = (0f32, 0f32, 0f32);
         if is_key_down(KeyCode::Up) {
             cam_delta.1 += 0.4;
         }
@@ -46,11 +47,30 @@ async fn main() {
         if is_key_down(KeyCode::Right) {
             cam_delta.0 += 0.4;
         }
+        if is_key_down(KeyCode::S) {
+            sphere_delta.2 += 0.02;
+        }
+        if is_key_down(KeyCode::W) {
+            sphere_delta.2 -= 0.02;
+        }
+        if is_key_down(KeyCode::Q) {
+            sphere_delta.1 += 0.02;
+        }
+        if is_key_down(KeyCode::E) {
+            sphere_delta.1 -= 0.02;
+        }
+        if is_key_down(KeyCode::D) {
+            sphere_delta.0 += 0.02;
+        }
+        if is_key_down(KeyCode::A) {
+            sphere_delta.0 -= 0.02;
+        }
         // scene.move_sphere(0.001, 0.001, 0.0014);
         camera.move_origin(
             get_frame_time() * cam_delta.0,
             get_frame_time() * cam_delta.1,
         );
+        scene.move_sphere(sphere_delta.0, sphere_delta.1, sphere_delta.2);
         render(
             &scene,
             &camera,

@@ -76,19 +76,26 @@ impl RaysProjections {
         color: Points,
         reflectance: Reals,
     ) {
+        let deltas = self.rays.origins - sphere_pos;
+
         let dirs_squared = self.rays.dirs * self.rays.dirs;
         let dirs_squared_sum = dirs_squared.xs + dirs_squared.ys + dirs_squared.zs;
-        let deltas = self.rays.origins - sphere_pos;
         let r_squared = Reals::splat(sphere_radius * sphere_radius);
         let mut d = r_squared * dirs_squared_sum;
         let a = self.rays.dirs.xs * deltas.ys - self.rays.dirs.ys * deltas.xs;
-        let b = self.rays.dirs.xs * deltas.zs - self.rays.dirs.zs * deltas.xs;
-        let c = self.rays.dirs.ys * deltas.zs - self.rays.dirs.zs * deltas.ys;
         d -= a * a;
+        if !d.simd_ge(Reals::splat(0.0)).any() {
+            return;
+        }
+        let b = self.rays.dirs.xs * deltas.zs - self.rays.dirs.zs * deltas.xs;
         d -= b * b;
+        if !d.simd_ge(Reals::splat(0.0)).any() {
+            return;
+        }
+        let c = self.rays.dirs.ys * deltas.zs - self.rays.dirs.zs * deltas.ys;
         d -= c * c;
-        let mask = d.simd_ge(Reals::splat(0.0));
 
+        let mask = d.simd_ge(Reals::splat(0.0));
         if !mask.any() {
             return;
         }
@@ -172,7 +179,7 @@ const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
     Points::splat(0.9, 0.0, 0.0),
     Points::splat(0.0, 0.0, 0.9),
     Points::splat(0.0, 0.9, 0.0),
-    Points::splat(0.5, 0.5, 0.5),
+    Points::splat(0.0, 0.0, 0.0),
 ];
 
 const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [
@@ -182,7 +189,7 @@ const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [
     splat_reals(0.1),
     splat_reals(0.1),
     splat_reals(0.1),
-    splat_reals(0.5),
+    splat_reals(0.8),
 ];
 
 const OBSTACLE_OFFSETS: [Reals; OBSTACLE_COUNT] = [
