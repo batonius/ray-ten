@@ -1,5 +1,5 @@
-use crate::render::{Points, Rays, Reals};
-use std::simd::StdFloat;
+use crate::render::{splat_reals, Points, Rays, Reals};
+use std::simd::{SimdFloat, SimdPartialOrd, StdFloat};
 
 use super::{update_reals_if, Axis};
 
@@ -59,7 +59,7 @@ impl RaysProjections {
     ) {
         let toi =
             (offset_within_axis - self.rays.origins.get_axis(axis)) / self.rays.dirs.get_axis(axis);
-        let mask = toi.lanes_gt(Reals::splat(MIN_TOI)) & toi.lanes_lt(self.min_toi);
+        let mask = toi.simd_gt(Reals::splat(MIN_TOI)) & toi.simd_lt(self.min_toi);
         update_reals_if(&mut self.min_toi, mask, toi);
 
         self.obstacle_colors.update_if(mask, color);
@@ -87,23 +87,23 @@ impl RaysProjections {
         d -= a * a;
         d -= b * b;
         d -= c * c;
-        let mask = d.lanes_ge(Reals::splat(0.0));
+        let mask = d.simd_ge(Reals::splat(0.0));
 
         if !mask.any() {
             return;
         }
 
-        d = d.max(Reals::splat(0.0));
+        d = d.simd_max(Reals::splat(0.0));
         let tts = Reals::splat(0.0)
             - deltas.xs * self.rays.dirs.xs
             - deltas.ys * self.rays.dirs.ys
             - deltas.zs * self.rays.dirs.zs;
         let mut t1s = (tts + d.sqrt()) / dirs_squared_sum;
         let mut t2s = (tts - d.sqrt()) / dirs_squared_sum;
-        t1s = t1s.max(Reals::splat(0.0));
-        t2s = t2s.max(Reals::splat(0.0));
-        let toi = t1s.min(t2s);
-        let mask = mask & toi.lanes_gt(Reals::splat(MIN_TOI)) & toi.lanes_lt(self.min_toi);
+        t1s = t1s.simd_max(Reals::splat(0.0));
+        t2s = t2s.simd_max(Reals::splat(0.0));
+        let toi = t1s.simd_min(t2s);
+        let mask = mask & toi.simd_gt(Reals::splat(MIN_TOI)) & toi.simd_lt(self.min_toi);
 
         update_reals_if(&mut self.min_toi, mask, toi);
 
@@ -175,23 +175,23 @@ const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
 ];
 
 const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [
-    Reals::splat(0.1),
-    Reals::splat(0.1),
-    Reals::splat(0.1),
-    Reals::splat(0.1),
-    Reals::splat(0.1),
-    Reals::splat(0.1),
-    Reals::splat(0.5),
+    splat_reals(0.1),
+    splat_reals(0.1),
+    splat_reals(0.1),
+    splat_reals(0.1),
+    splat_reals(0.1),
+    splat_reals(0.1),
+    splat_reals(0.5),
 ];
 
 const OBSTACLE_OFFSETS: [Reals; OBSTACLE_COUNT] = [
-    Reals::splat(2.0),
-    Reals::splat(-2.0),
-    Reals::splat(-4.0),
-    Reals::splat(4.0),
-    Reals::splat(-16.0),
-    Reals::splat(0.0),
-    Reals::splat(0.0),
+    splat_reals(2.0),
+    splat_reals(-2.0),
+    splat_reals(-4.0),
+    splat_reals(4.0),
+    splat_reals(-16.0),
+    splat_reals(0.0),
+    splat_reals(0.0),
 ];
 
 const SPHERE_RADIUS: f32 = 0.5;

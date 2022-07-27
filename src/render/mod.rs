@@ -1,5 +1,5 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
-use std::simd::{Mask as SimdMask, Simd, StdFloat};
+use std::simd::{Mask as SimdMask, Simd, SimdFloat, StdFloat};
 
 pub mod camera;
 pub mod render;
@@ -10,6 +10,11 @@ pub const LANES: usize = 8usize;
 pub type Real = f32;
 pub type Reals = Simd<Real, LANES>;
 pub type Mask = SimdMask<i32, LANES>;
+
+#[inline(always)]
+pub const fn splat_reals(x: Real) -> Reals {
+    Reals::from_array([x; LANES])
+}
 
 #[inline(always)]
 pub fn update_reals_if(values: &mut Reals, mask: Mask, update_with: Reals) {
@@ -38,9 +43,9 @@ impl Points {
     #[inline(always)]
     pub const fn splat(x: f32, y: f32, z: f32) -> Self {
         Points {
-            xs: Reals::splat(x),
-            ys: Reals::splat(y),
-            zs: Reals::splat(z),
+            xs: splat_reals(x),
+            ys: splat_reals(y),
+            zs: splat_reals(z),
         }
     }
 
@@ -67,9 +72,9 @@ impl Points {
         let zeros = Reals::splat(0.0);
         let ones = Reals::splat(1.0);
         Points {
-            xs: self.xs.clamp(zeros, ones),
-            ys: self.ys.clamp(zeros, ones),
-            zs: self.zs.clamp(zeros, ones),
+            xs: self.xs.simd_clamp(zeros, ones),
+            ys: self.ys.simd_clamp(zeros, ones),
+            zs: self.zs.simd_clamp(zeros, ones),
         }
     }
 
