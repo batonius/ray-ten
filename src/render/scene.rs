@@ -77,16 +77,6 @@ impl RaysProjections {
                 % Integers::splat(2))
             .simd_eq(Integers::splat(0));
 
-        // self.obstacle_colors
-        //     .update_if(checkered_mask, Points::splat(0.5, 0.5, 0.5) * color);
-        // update_reals_if(
-        //     &mut self.obstacle_reflectances,
-        //     checkered_mask,
-        //     reflectance * Reals::splat(0.3),
-        // );
-
-        // self.obstacle_colors
-        //     .update_if(checkered_mask, Points::splat(0.0, 0.0, 0.0));
         update_reals_if(&mut self.obstacle_reflectances, checkered_mask, ZEROS);
 
         self.obstacle_normals.update_if(mask, normal);
@@ -260,6 +250,18 @@ impl Scene for FixedScene {
                     OBSTACLE_REFLECTANCES[obstacle],
                 )
             }
+            projections.with_sphere(
+                Points::splat(0.0, 0.0, -19.9),
+                4.0,
+                ZERO_POINTS,
+                Reals::splat(0.0),
+            );
+            projections.with_sphere(
+                Points::splat(0.0, 0.0, 3.9),
+                4.0,
+                Points::splat(1.0, 1.0, 1.0),
+                Reals::splat(0.0),
+            );
             if projections.reflect() {
                 break;
             }
