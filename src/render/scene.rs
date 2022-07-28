@@ -1,8 +1,10 @@
-use crate::render::{splat_reals, update_reals_if, Axis, Integer, Integers, Points, Rays, Reals};
-use std::simd::{SimdFloat, SimdInt, SimdPartialEq, SimdPartialOrd, StdFloat};
+use crate::render::{
+    splat_reals, update_reals_if, Axis, Integer, Integers, Points, Rays, Reals, ZEROS, ZERO_POINTS,
+};
+use std::simd::{SimdFloat, SimdPartialEq, SimdPartialOrd, StdFloat};
 
 pub trait Scene {
-    fn rays_colors(&self, rays: Rays, depth: u32) -> Points;
+    fn rays_colors(&self, rays: Rays, depth: usize) -> Points;
 }
 
 pub struct FixedScene {
@@ -39,9 +41,9 @@ impl RaysProjections {
             rays,
             min_toi: Reals::splat(std::f32::MAX),
             obstacle_reflectances: Reals::splat(std::f32::MAX),
-            obstacle_colors: Points::splat(0.0, 0.0, 0.0),
-            obstacle_normals: Points::splat(0.0, 0.0, 0.0),
-            offset_colors: Points::splat(0.0, 0.0, 0.0),
+            obstacle_colors: ZERO_POINTS,
+            obstacle_normals: ZERO_POINTS,
+            offset_colors: ZERO_POINTS,
             coef_colors: Points::splat(1.0, 1.0, 1.0),
         }
     }
@@ -75,13 +77,17 @@ impl RaysProjections {
                 % Integers::splat(2))
             .simd_eq(Integers::splat(0));
 
-        self.obstacle_colors
-            .update_if(checkered_mask, Points::splat(0.0, 0.0, 0.0));
-        update_reals_if(
-            &mut self.obstacle_reflectances,
-            checkered_mask,
-            Reals::splat(0.0),
-        );
+        // self.obstacle_colors
+        //     .update_if(checkered_mask, Points::splat(0.5, 0.5, 0.5) * color);
+        // update_reals_if(
+        //     &mut self.obstacle_reflectances,
+        //     checkered_mask,
+        //     reflectance * Reals::splat(0.3),
+        // );
+
+        // self.obstacle_colors
+        //     .update_if(checkered_mask, Points::splat(0.0, 0.0, 0.0));
+        update_reals_if(&mut self.obstacle_reflectances, checkered_mask, ZEROS);
 
         self.obstacle_normals.update_if(mask, normal);
     }
@@ -102,31 +108,31 @@ impl RaysProjections {
         let mut d = r_squared * dirs_squared_sum;
         let a = self.rays.dirs.xs * deltas.ys - self.rays.dirs.ys * deltas.xs;
         d -= a * a;
-        if !d.simd_ge(Reals::splat(0.0)).any() {
+        if !d.simd_ge(ZEROS).any() {
             return;
         }
         let b = self.rays.dirs.xs * deltas.zs - self.rays.dirs.zs * deltas.xs;
         d -= b * b;
-        if !d.simd_ge(Reals::splat(0.0)).any() {
+        if !d.simd_ge(ZEROS).any() {
             return;
         }
         let c = self.rays.dirs.ys * deltas.zs - self.rays.dirs.zs * deltas.ys;
         d -= c * c;
 
-        let mask = d.simd_ge(Reals::splat(0.0));
+        let mask = d.simd_ge(ZEROS);
         if !mask.any() {
             return;
         }
 
-        d = d.simd_max(Reals::splat(0.0));
-        let tts = Reals::splat(0.0)
+        d = d.simd_max(ZEROS);
+        let tts = ZEROS
             - deltas.xs * self.rays.dirs.xs
             - deltas.ys * self.rays.dirs.ys
             - deltas.zs * self.rays.dirs.zs;
         let mut t1s = (tts + d.sqrt()) / dirs_squared_sum;
         let mut t2s = (tts - d.sqrt()) / dirs_squared_sum;
-        t1s = t1s.simd_max(Reals::splat(0.0));
-        t2s = t2s.simd_max(Reals::splat(0.0));
+        t1s = t1s.simd_max(ZEROS);
+        t2s = t2s.simd_max(ZEROS);
         let toi = t1s.simd_min(t2s);
         let mask = mask & toi.simd_gt(Reals::splat(MIN_TOI)) & toi.simd_lt(self.min_toi);
 
@@ -158,7 +164,7 @@ impl RaysProjections {
         self.coef_colors *= self.obstacle_reflectances;
         self.min_toi = Reals::splat(std::f32::MAX);
 
-        self.obstacle_reflectances.simd_eq(Reals::splat(0.0)).all()
+        self.obstacle_reflectances.simd_eq(ZEROS).all()
     }
 
     #[inline(always)]
@@ -193,12 +199,12 @@ const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
 ];
 
 const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
-    Points::splat(1.0, 1.0, 0.5),
-    Points::splat(0.5, 1.0, 1.0),
-    Points::splat(1.0, 0.5, 1.0),
-    Points::splat(1.0, 0.5, 0.5),
-    Points::splat(0.5, 0.5, 1.0),
-    Points::splat(0.5, 1.0, 0.5),
+    Points::splat(0.8, 0.8, 0.1),
+    Points::splat(0.1, 0.8, 0.8),
+    Points::splat(0.8, 0.1, 0.8),
+    Points::splat(0.8, 0.1, 0.1),
+    Points::splat(0.1, 0.1, 0.8),
+    Points::splat(0.1, 0.8, 0.1),
     Points::splat(0.1, 0.1, 0.1),
 ];
 
@@ -228,7 +234,7 @@ const MIN_TOI: f32 = 0.001;
 
 impl Scene for FixedScene {
     #[inline(always)]
-    fn rays_colors(&self, rays: Rays, depth: u32) -> Points {
+    fn rays_colors(&self, rays: Rays, depth: usize) -> Points {
         let mut projections = RaysProjections::new(rays);
         for _ in 0..depth {
             projections.with_sphere(

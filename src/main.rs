@@ -4,8 +4,8 @@ use macroquad::prelude::*;
 
 const IMAGE_WIDTH: u16 = 1600;
 const IMAGE_HEIGHT: u16 = 900;
-const MAX_DEPTH: u32 = 5;
-const SAMPLES_PER_PIXEL: u32 = 4;
+const MAX_DEPTH: usize = 5;
+const SAMPLES_PER_PIXEL: usize = 4;
 
 mod render;
 
@@ -66,7 +66,6 @@ async fn main() {
         if is_key_down(KeyCode::A) {
             sphere_delta.0 -= 0.02;
         }
-        // scene.move_sphere(0.001, 0.001, 0.0014);
         camera.move_origin(
             get_frame_time() * cam_delta.0,
             get_frame_time() * cam_delta.1,

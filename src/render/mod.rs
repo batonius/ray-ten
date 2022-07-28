@@ -13,6 +13,9 @@ pub type Reals = Simd<Real, LANES>;
 pub type Integers = Simd<Integer, LANES>;
 pub type Mask = SimdMask<i32, LANES>;
 
+pub const ZEROS: Reals = Reals::from_array([0.0; LANES]);
+pub const ZERO_POINTS: Points = Points::splat(0.0, 0.0, 0.0);
+
 #[inline(always)]
 pub const fn splat_reals(x: Real) -> Reals {
     Reals::from_array([x; LANES])
