@@ -1,7 +1,5 @@
-use crate::render::{splat_reals, Points, Rays, Reals};
-use std::simd::{SimdFloat, SimdPartialOrd, StdFloat};
-
-use super::{update_reals_if, Axis};
+use crate::render::{splat_reals, update_reals_if, Axis, Integer, Integers, Points, Rays, Reals};
+use std::simd::{SimdFloat, SimdInt, SimdPartialEq, SimdPartialOrd, StdFloat};
 
 pub trait Scene {
     fn rays_colors(&self, rays: Rays, depth: u32) -> Points;
@@ -60,12 +58,33 @@ impl RaysProjections {
         let toi =
             (offset_within_axis - self.rays.origins.get_axis(axis)) / self.rays.dirs.get_axis(axis);
         let mask = toi.simd_gt(Reals::splat(MIN_TOI)) & toi.simd_lt(self.min_toi);
+        if !mask.any() {
+            return;
+        }
         update_reals_if(&mut self.min_toi, mask, toi);
-
         self.obstacle_colors.update_if(mask, color);
-        self.obstacle_normals.update_if(mask, normal);
-
         update_reals_if(&mut self.obstacle_reflectances, mask, reflectance);
+
+        let mut offset_pois =
+            self.rays.origins + self.rays.dirs * toi + Points::splat(1000.0, 1000.0, 1000.0);
+        offset_pois *= 1.5;
+        let checkered_mask = mask
+            & ((offset_pois.xs.cast::<Integer>()
+                + offset_pois.ys.cast::<Integer>()
+                + offset_pois.zs.cast::<Integer>())
+            .abs()
+                % Integers::splat(2))
+            .simd_eq(Integers::splat(0));
+
+        self.obstacle_colors
+            .update_if(checkered_mask, Points::splat(0.1, 0.1, 0.1));
+        update_reals_if(
+            &mut self.obstacle_reflectances,
+            checkered_mask,
+            Reals::splat(0.0),
+        );
+
+        self.obstacle_normals.update_if(mask, normal);
     }
 
     #[inline(always)]
@@ -127,7 +146,7 @@ impl RaysProjections {
     }
 
     #[inline(always)]
-    fn reflect(&mut self) {
+    fn reflect(&mut self) -> bool {
         let pois = self.rays.origins + self.rays.dirs * self.min_toi;
         let reflection_dirs = self.rays.dirs
             - (self.obstacle_normals
@@ -139,6 +158,8 @@ impl RaysProjections {
         self.offset_colors += self.coef_colors * self.obstacle_colors;
         self.coef_colors *= self.obstacle_reflectances;
         self.min_toi = Reals::splat(std::f32::MAX);
+
+        self.obstacle_reflectances.simd_eq(Reals::splat(0.0)).all()
     }
 
     #[inline(always)]
@@ -173,23 +194,23 @@ const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
 ];
 
 const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
-    Points::splat(0.9, 0.9, 0.0),
-    Points::splat(0.0, 0.9, 0.9),
-    Points::splat(0.9, 0.0, 0.9),
-    Points::splat(0.9, 0.0, 0.0),
-    Points::splat(0.0, 0.0, 0.9),
-    Points::splat(0.0, 0.9, 0.0),
-    Points::splat(0.0, 0.0, 0.0),
+    Points::splat(0.9, 0.9, 0.5),
+    Points::splat(0.5, 0.9, 0.9),
+    Points::splat(0.9, 0.5, 0.9),
+    Points::splat(0.9, 0.5, 0.5),
+    Points::splat(0.5, 0.5, 0.9),
+    Points::splat(0.5, 0.9, 0.0),
+    Points::splat(0.1, 0.1, 0.1),
 ];
 
 const OBSTACLE_REFLECTANCES: [Reals; OBSTACLE_COUNT] = [
-    splat_reals(0.1),
-    splat_reals(0.1),
-    splat_reals(0.1),
-    splat_reals(0.1),
-    splat_reals(0.1),
-    splat_reals(0.1),
-    splat_reals(0.8),
+    splat_reals(0.3),
+    splat_reals(0.3),
+    splat_reals(0.3),
+    splat_reals(0.3),
+    splat_reals(0.3),
+    splat_reals(0.3),
+    splat_reals(0.5),
 ];
 
 const OBSTACLE_OFFSETS: [Reals; OBSTACLE_COUNT] = [
@@ -234,7 +255,9 @@ impl Scene for FixedScene {
                     OBSTACLE_REFLECTANCES[obstacle],
                 )
             }
-            projections.reflect();
+            if projections.reflect() {
+                break;
+            }
         }
         projections.finish(Points::splat(1.0, 1.0, 1.0))
     }

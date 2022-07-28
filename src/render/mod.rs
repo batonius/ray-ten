@@ -8,7 +8,9 @@ pub mod scene;
 pub const LANES: usize = 8usize;
 
 pub type Real = f32;
+pub type Integer = i32;
 pub type Reals = Simd<Real, LANES>;
+pub type Integers = Simd<Integer, LANES>;
 pub type Mask = SimdMask<i32, LANES>;
 
 #[inline(always)]

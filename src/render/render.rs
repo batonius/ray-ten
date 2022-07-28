@@ -50,9 +50,9 @@ pub fn render<S>(
 
                 x_offsets += &x_deltas[sample as usize];
                 y_offsets += &y_deltas[sample as usize];
-
                 x_offsets /= Reals::splat(width as f32);
                 y_offsets /= Reals::splat(height as f32);
+
                 let rays = camera.pixel_rays(x_offsets, y_offsets);
                 pixels_colors += scene.rays_colors(rays, max_depth);
             }
