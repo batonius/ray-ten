@@ -72,12 +72,11 @@ impl RaysProjections {
             & ((offset_pois.xs.cast::<Integer>()
                 + offset_pois.ys.cast::<Integer>()
                 + offset_pois.zs.cast::<Integer>())
-            .abs()
                 % Integers::splat(2))
             .simd_eq(Integers::splat(0));
 
         self.obstacle_colors
-            .update_if(checkered_mask, Points::splat(0.1, 0.1, 0.1));
+            .update_if(checkered_mask, Points::splat(0.0, 0.0, 0.0));
         update_reals_if(
             &mut self.obstacle_reflectances,
             checkered_mask,
@@ -194,12 +193,12 @@ const OBSTACLE_NORMALS: [Points; OBSTACLE_COUNT] = [
 ];
 
 const OBSTACLE_COLORS: [Points; OBSTACLE_COUNT] = [
-    Points::splat(0.9, 0.9, 0.5),
-    Points::splat(0.5, 0.9, 0.9),
-    Points::splat(0.9, 0.5, 0.9),
-    Points::splat(0.9, 0.5, 0.5),
-    Points::splat(0.5, 0.5, 0.9),
-    Points::splat(0.5, 0.9, 0.0),
+    Points::splat(1.0, 1.0, 0.5),
+    Points::splat(0.5, 1.0, 1.0),
+    Points::splat(1.0, 0.5, 1.0),
+    Points::splat(1.0, 0.5, 0.5),
+    Points::splat(0.5, 0.5, 1.0),
+    Points::splat(0.5, 1.0, 0.5),
     Points::splat(0.1, 0.1, 0.1),
 ];
 

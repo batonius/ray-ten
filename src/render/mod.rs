@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::simd::{Mask as SimdMask, Simd, SimdFloat, StdFloat};
 
 pub mod camera;
-pub mod render;
+pub mod renderer;
 pub mod scene;
 
 pub const LANES: usize = 8usize;

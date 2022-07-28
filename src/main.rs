@@ -9,7 +9,7 @@ const SAMPLES_PER_PIXEL: u32 = 4;
 
 mod render;
 
-use render::{camera::Camera, render::render, scene::FixedScene};
+use render::{camera::Camera, renderer::Renderer, scene::FixedScene};
 
 fn window_conf() -> Conf {
     Conf {
@@ -26,6 +26,7 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
     let mut scene = FixedScene::new();
+    let renderer = Renderer::new((IMAGE_WIDTH, IMAGE_HEIGHT), SAMPLES_PER_PIXEL, MAX_DEPTH);
     let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
     let texture = Texture2D::from_image(&image);
 
@@ -71,14 +72,7 @@ async fn main() {
             get_frame_time() * cam_delta.1,
         );
         scene.move_sphere(sphere_delta.0, sphere_delta.1, sphere_delta.2);
-        render(
-            &scene,
-            &camera,
-            image.get_image_data_mut(),
-            (IMAGE_WIDTH, IMAGE_HEIGHT),
-            SAMPLES_PER_PIXEL,
-            MAX_DEPTH,
-        );
+        renderer.render(&scene, &camera, image.get_image_data_mut());
         texture.update(&image);
         draw_texture(texture, 0.0, 0.0, WHITE);
         draw_text(format!("FPS: {}", get_fps()).as_str(), 0., 16., 32., BLACK);
