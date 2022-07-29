@@ -5,9 +5,9 @@ use crate::math::{
 use crate::scene::{Obstacle, Scene};
 use std::simd::{SimdFloat, SimdPartialEq, SimdPartialOrd, StdFloat};
 
-pub fn trace_rays(scene: &Scene, rays: Rays, depth: usize) -> Colors {
-    let mut projections = RaysProjections::new(rays);
-    for _ in 0..depth {
+pub fn trace_rays(scene: &Scene, rays: Rays, max_depth: usize) -> Colors {
+    let mut projections = RaysProjections::new(rays, max_depth);
+    loop {
         for sphere in scene.spheres() {
             projections.with_sphere(
                 scene.sphere_pos(*sphere),
@@ -40,12 +40,13 @@ struct RaysProjections {
     obstacle_normals: Points,
     offset_colors: Colors,
     coef_colors: Colors,
+    depth_left: usize,
 }
 
-const MIN_TOI: f32 = 0.0001f32;
+const MIN_TOI: f32 = 0.001f32;
 
 impl RaysProjections {
-    fn new(rays: Rays) -> RaysProjections {
+    fn new(rays: Rays, max_depth: usize) -> RaysProjections {
         RaysProjections {
             rays,
             min_toi: Reals::splat(std::f32::MAX),
@@ -54,6 +55,7 @@ impl RaysProjections {
             obstacle_normals: ZERO_POINTS,
             offset_colors: ZERO_POINTS,
             coef_colors: Points::splat(1.0, 1.0, 1.0),
+            depth_left: max_depth,
         }
     }
 
@@ -147,15 +149,22 @@ impl RaysProjections {
 
         let pois = self.rays.origins + self.rays.dirs * self.min_toi;
         let mut normals = pois - sphere_pos;
-        let magnitudes =
-            (normals.xs * normals.xs + normals.ys * normals.ys + normals.zs * normals.zs).sqrt();
-        normals /= magnitudes;
+        normals /= Reals::splat(sphere_radius);
 
         self.obstacle_normals.update_if(mask, normals);
         update_reals_if(&mut self.obstacle_reflectances, mask, reflectance);
     }
 
     fn reflect(&mut self) -> bool {
+        self.offset_colors += self.coef_colors * self.obstacle_colors;
+        self.coef_colors *= self.obstacle_reflectances;
+
+        self.depth_left -= 1;
+
+        if self.depth_left == 0 || self.obstacle_reflectances.simd_eq(ZEROS).all() {
+            return true;
+        }
+
         let pois = self.rays.origins + self.rays.dirs * self.min_toi;
         let reflection_dirs = self.rays.dirs
             - (self.obstacle_normals
@@ -164,11 +173,9 @@ impl RaysProjections {
 
         self.rays = Rays::new(pois, reflection_dirs);
 
-        self.offset_colors += self.coef_colors * self.obstacle_colors;
-        self.coef_colors *= self.obstacle_reflectances;
         self.min_toi = Reals::splat(std::f32::MAX);
 
-        self.obstacle_reflectances.simd_eq(ZEROS).all()
+        false
     }
 
     fn finish(mut self, base_colors: Colors) -> Colors {
