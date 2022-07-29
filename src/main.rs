@@ -7,9 +7,12 @@ const IMAGE_HEIGHT: u16 = 900;
 const MAX_DEPTH: usize = 5;
 const SAMPLES_PER_PIXEL: usize = 4;
 
+mod math;
 mod render;
+mod scene;
 
-use render::{camera::Camera, renderer::Renderer, scene::FixedScene};
+use render::{camera::Camera, renderer::Renderer};
+use scene::Scene;
 
 fn window_conf() -> Conf {
     Conf {
@@ -25,10 +28,13 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
-    let mut scene = FixedScene::new();
+    let mut scene = Scene::new();
     let renderer = Renderer::new((IMAGE_WIDTH, IMAGE_HEIGHT), SAMPLES_PER_PIXEL, MAX_DEPTH);
     let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
     let texture = Texture2D::from_image(&image);
+
+    let mut time_counter = 0usize;
+    let mut sum_time: f32 = 0.0;
 
     loop {
         if is_key_down(KeyCode::Escape) {
@@ -70,11 +76,20 @@ async fn main() {
             get_frame_time() * cam_delta.0,
             get_frame_time() * cam_delta.1,
         );
-        scene.move_sphere(sphere_delta.0, sphere_delta.1, sphere_delta.2);
+        // scene.move_sphere(sphere_delta.0, sphere_delta.1, sphere_delta.2);
         renderer.render(&scene, &camera, image.get_image_data_mut());
         texture.update(&image);
         draw_texture(texture, 0.0, 0.0, WHITE);
-        draw_text(format!("FPS: {}", get_fps()).as_str(), 0., 16., 32., BLACK);
+        time_counter += 1;
+        sum_time += get_frame_time();
+        if time_counter % 100 == 0 {
+            println!(
+                "After {} frames, avg {}",
+                time_counter,
+                sum_time / time_counter as f32
+            );
+        }
+
         next_frame().await
     }
 }

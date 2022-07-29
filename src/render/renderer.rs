@@ -1,7 +1,8 @@
 use crate::{
+    math::{Reals, LANES, ZEROS, ZERO_POINTS},
     render::camera::Camera,
-    render::scene::Scene,
-    render::{Reals, LANES, ZEROS, ZERO_POINTS},
+    render::tracer::trace_rays,
+    scene::Scene,
 };
 use rayon::prelude::*;
 
@@ -46,10 +47,7 @@ impl Renderer {
         }
     }
 
-    pub fn render<S>(&self, scene: &S, camera: &Camera, buffer: &mut [[u8; 4]])
-    where
-        S: Scene + Sync + Send,
-    {
+    pub fn render(&self, scene: &Scene, camera: &Camera, buffer: &mut [[u8; 4]]) {
         buffer
             .par_chunks_exact_mut(LANES)
             .enumerate()
@@ -70,7 +68,7 @@ impl Renderer {
                     y_offsets /= Reals::splat(self.height);
 
                     let rays = camera.pixel_rays(x_offsets, y_offsets);
-                    pixels_colors += scene.rays_colors(rays, self.max_depth);
+                    pixels_colors += trace_rays(scene, rays, self.max_depth);
                 }
                 pixels_colors /= Reals::splat(self.samples_per_pixel as f32);
                 pixels_colors = pixels_colors.sqrt().normalize();
