@@ -8,11 +8,13 @@ const MAX_DEPTH: usize = 5;
 const SAMPLES_PER_PIXEL: usize = 4;
 
 mod math;
+mod motion;
 mod render;
 mod scene;
 
+use motion::{MotionTicker, PaddleControls};
 use render::{camera::Camera, renderer::Renderer};
-use scene::Scene;
+use scene::{Scene, Sphere};
 
 fn window_conf() -> Conf {
     Conf {
@@ -29,6 +31,8 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut camera = Camera::new(IMAGE_WIDTH as f32 / IMAGE_HEIGHT as f32, 2.0f32);
     let mut scene = Scene::new();
+    let mut motion_ticker = MotionTicker::new();
+
     let renderer = Renderer::new((IMAGE_WIDTH, IMAGE_HEIGHT), SAMPLES_PER_PIXEL, MAX_DEPTH);
     let mut image = Image::gen_image_color(IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
     let texture = Texture2D::from_image(&image);
@@ -40,43 +44,20 @@ async fn main() {
         if is_key_down(KeyCode::Escape) {
             break;
         }
-        let mut cam_delta = (0f32, 0f32);
-        let mut sphere_delta = (0f32, 0f32, 0f32);
-        if is_key_down(KeyCode::Up) {
-            cam_delta.1 += 0.4;
-        }
-        if is_key_down(KeyCode::Down) {
-            cam_delta.1 -= 0.4;
-        }
-        if is_key_down(KeyCode::Left) {
-            cam_delta.0 -= 0.4;
-        }
-        if is_key_down(KeyCode::Right) {
-            cam_delta.0 += 0.4;
-        }
-        if is_key_down(KeyCode::S) {
-            sphere_delta.2 += 0.02;
-        }
-        if is_key_down(KeyCode::W) {
-            sphere_delta.2 -= 0.02;
-        }
-        if is_key_down(KeyCode::Q) {
-            sphere_delta.1 += 0.02;
-        }
-        if is_key_down(KeyCode::E) {
-            sphere_delta.1 -= 0.02;
-        }
-        if is_key_down(KeyCode::D) {
-            sphere_delta.0 += 0.02;
-        }
-        if is_key_down(KeyCode::A) {
-            sphere_delta.0 -= 0.02;
-        }
-        camera.move_origin(
-            get_frame_time() * cam_delta.0,
-            get_frame_time() * cam_delta.1,
+        let player_paddle_controls = PaddleControls::new(
+            is_key_down(KeyCode::Up),
+            is_key_down(KeyCode::Down),
+            is_key_down(KeyCode::Left),
+            is_key_down(KeyCode::Right),
         );
-        // scene.move_sphere(sphere_delta.0, sphere_delta.1, sphere_delta.2);
+        let _motion_result = motion_ticker.tick(
+            &mut scene,
+            get_frame_time(),
+            player_paddle_controls,
+            PaddleControls::still(),
+        );
+        let near_paddle_pos = scene.sphere_pos(Sphere::NearPaddle);
+        camera.move_origin_to(near_paddle_pos.x(), near_paddle_pos.y());
         renderer.render(&scene, &camera, image.get_image_data_mut());
         texture.update(&image);
         draw_texture(texture, 0.0, 0.0, WHITE);

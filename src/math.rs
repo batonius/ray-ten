@@ -35,6 +35,7 @@ pub struct Points {
 }
 
 pub type Colors = Points;
+pub type Vectors = Points;
 
 impl Points {
     pub const fn splat(x: f32, y: f32, z: f32) -> Self {
@@ -207,7 +208,7 @@ impl SubAssign<Points> for Points {
 #[derive(Clone, Debug)]
 pub struct Rays {
     pub origins: Points,
-    pub dirs: Points,
+    pub dirs: Vectors,
 }
 
 impl Rays {
@@ -220,6 +221,7 @@ impl Rays {
 pub struct Point(Simd<Real, 4>);
 
 pub type Color = Point;
+pub type Vector = Point;
 
 impl Point {
     pub const fn new(x: Real, y: Real, z: Real) -> Point {

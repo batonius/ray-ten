@@ -1,10 +1,11 @@
 use crate::math::{
     update_reals_if, Axis, Color, Colors, Integer, Integers, Point, Points, Rays, Real, Reals,
-    ZEROS, ZERO_POINTS,
+    Vector, Vectors, ZEROS, ZERO_POINTS,
 };
 use crate::scene::{Obstacle, Scene};
 use std::simd::{SimdFloat, SimdPartialEq, SimdPartialOrd, StdFloat};
 
+#[inline(never)]
 pub fn trace_rays(scene: &Scene, rays: Rays, max_depth: usize) -> Colors {
     let mut projections = RaysProjections::new(rays, max_depth);
     loop {
@@ -37,7 +38,7 @@ struct RaysProjections {
     min_toi: Reals,
     obstacle_reflectances: Reals,
     obstacle_colors: Colors,
-    obstacle_normals: Points,
+    obstacle_normals: Vectors,
     offset_colors: Colors,
     coef_colors: Colors,
     depth_left: usize,
@@ -54,7 +55,7 @@ impl RaysProjections {
             obstacle_colors: ZERO_POINTS,
             obstacle_normals: ZERO_POINTS,
             offset_colors: ZERO_POINTS,
-            coef_colors: Points::splat(1.0, 1.0, 1.0),
+            coef_colors: Colors::splat(1.0, 1.0, 1.0),
             depth_left: max_depth,
         }
     }
@@ -63,12 +64,12 @@ impl RaysProjections {
         &mut self,
         axis: Axis,
         offset_within_axis: Real,
-        normal: Point,
+        normal: Vector,
         color: Color,
         reflectance: Real,
     ) {
         let offset_within_axis = Reals::splat(offset_within_axis);
-        let normal = Points::from_single(normal);
+        let normal = Vectors::from_single(normal);
         let color = Colors::from_single(color);
         let reflectance = Reals::splat(reflectance);
 

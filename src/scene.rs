@@ -1,6 +1,6 @@
-use crate::math::{Axis, Color, Point, Real};
+use crate::math::{Axis, Color, Point, Real, Vector};
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Plane {
     Top,
     Bottom,
@@ -10,14 +10,14 @@ pub enum Plane {
     Near,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Sphere {
     Ball,
     NearPaddle,
     FarPaddle,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Obstacle {
     Plane(Plane),
     Sphere(Sphere),
@@ -36,13 +36,13 @@ const SPHERES: [Sphere; 3] = [Sphere::Ball, Sphere::NearPaddle, Sphere::FarPaddl
 const PLANES_COUNT: usize = Plane::Near as usize + 1;
 
 const PLANES_OFFSETS: [Real; PLANES_COUNT] = [2.0, -2.0, -4.0, 4.0, -16.0, 0.0];
-const PLANES_NORMALS: [Point; PLANES_COUNT] = [
-    Point::new(0.0, -1.0, 0.0),
-    Point::new(0.0, 1.0, 0.0),
-    Point::new(1.0, 0.0, 0.0),
-    Point::new(-1.0, 0.0, 0.0),
-    Point::new(0.0, 0.0, 1.0),
-    Point::new(0.0, 0.0, -1.0),
+const PLANES_NORMALS: [Vector; PLANES_COUNT] = [
+    Vector::new(0.0, -1.0, 0.0),
+    Vector::new(0.0, 1.0, 0.0),
+    Vector::new(1.0, 0.0, 0.0),
+    Vector::new(-1.0, 0.0, 0.0),
+    Vector::new(0.0, 0.0, 1.0),
+    Vector::new(0.0, 0.0, -1.0),
 ];
 const PLANES_AXIS: [Axis; PLANES_COUNT] =
     [Axis::YS, Axis::YS, Axis::XS, Axis::XS, Axis::ZS, Axis::ZS];
@@ -104,7 +104,7 @@ impl Scene {
         SPHERES_RADII[sphere as usize]
     }
 
-    pub fn plane_normal(&self, plane: Plane) -> Point {
+    pub fn plane_normal(&self, plane: Plane) -> Vector {
         PLANES_NORMALS[plane as usize]
     }
 
@@ -126,12 +126,12 @@ impl Scene {
         }
     }
 
-    pub fn move_sphere(&mut self, sphere: Sphere, delta: Point) {
+    pub fn move_sphere_to(&mut self, sphere: Sphere, position: Point) {
         let sphere_pos = match sphere {
             Sphere::Ball => &mut self.ball_pos,
             Sphere::NearPaddle => &mut self.near_paddle_pos,
             Sphere::FarPaddle => &mut self.far_paddle_pos,
         };
-        *sphere_pos = *sphere_pos + delta;
+        *sphere_pos = position;
     }
 }
