@@ -1,4 +1,4 @@
-use crate::math::{Point, Real, Vector};
+use crate::math::{Real, Vector};
 use crate::scene::{Obstacle, Plane, Scene, Sphere};
 
 #[derive(Clone, Copy, Debug)]

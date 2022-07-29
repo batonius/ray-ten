@@ -23,16 +23,6 @@ pub enum Obstacle {
     Sphere(Sphere),
 }
 
-const PLANES: [Plane; 6] = [
-    Plane::Top,
-    Plane::Bottom,
-    Plane::Left,
-    Plane::Right,
-    Plane::Far,
-    Plane::Near,
-];
-const SPHERES: [Sphere; 3] = [Sphere::Ball, Sphere::NearPaddle, Sphere::FarPaddle];
-
 const PLANES_COUNT: usize = Plane::Near as usize + 1;
 
 const PLANES_OFFSETS: [Real; PLANES_COUNT] = [2.0, -2.0, -4.0, 4.0, -16.0, 0.0];
@@ -78,14 +68,6 @@ impl Scene {
             near_paddle_pos: Point::new(0.0, 0.0, 3.9),
             far_paddle_pos: Point::new(0.0, 0.0, -19.9),
         }
-    }
-
-    pub fn planes(&self) -> &[Plane] {
-        &PLANES
-    }
-
-    pub fn spheres(&self) -> &[Sphere] {
-        &SPHERES
     }
 
     pub fn plane_offset(&self, plane: Plane) -> Real {

@@ -1,31 +1,21 @@
 use crate::math::{
-    update_reals_if, Axis, Color, Colors, Integer, Integers, Point, Points, Rays, Real, Reals,
-    Vector, Vectors, ZEROS, ZERO_POINTS,
+    update_reals_if, Colors, Integer, Integers, Points, Rays, Reals, Vectors, ZEROS, ZERO_POINTS,
 };
-use crate::scene::{Obstacle, Scene};
+use crate::scene::{Obstacle, Plane, Scene, Sphere};
 use std::simd::{SimdFloat, SimdPartialEq, SimdPartialOrd, StdFloat};
 
-#[inline(never)]
 pub fn trace_rays(scene: &Scene, rays: Rays, max_depth: usize) -> Colors {
-    let mut projections = RaysProjections::new(rays, max_depth);
+    let mut projections = RaysProjections::new(scene, rays, max_depth);
     loop {
-        for sphere in scene.spheres() {
-            projections.with_sphere(
-                scene.sphere_pos(*sphere),
-                scene.sphere_radius(*sphere),
-                scene.obstacle_color(Obstacle::Sphere(*sphere)),
-                scene.obstacle_reflectance(Obstacle::Sphere(*sphere)),
-            );
-        }
-        for plane in scene.planes() {
-            projections.with_axis_aligned_plane(
-                scene.plane_alignment_axis(*plane),
-                scene.plane_offset(*plane),
-                scene.plane_normal(*plane),
-                scene.obstacle_color(Obstacle::Plane(*plane)),
-                scene.obstacle_reflectance(Obstacle::Plane(*plane)),
-            );
-        }
+        projections.with_sphere(Sphere::Ball);
+        projections.with_sphere(Sphere::NearPaddle);
+        projections.with_sphere(Sphere::FarPaddle);
+        projections.with_axis_aligned_plane(Plane::Top);
+        projections.with_axis_aligned_plane(Plane::Bottom);
+        projections.with_axis_aligned_plane(Plane::Left);
+        projections.with_axis_aligned_plane(Plane::Right);
+        projections.with_axis_aligned_plane(Plane::Near);
+        projections.with_axis_aligned_plane(Plane::Far);
         if projections.reflect() {
             break;
         }
@@ -33,7 +23,8 @@ pub fn trace_rays(scene: &Scene, rays: Rays, max_depth: usize) -> Colors {
     projections.finish(Colors::splat(1.0, 1.0, 1.0))
 }
 
-struct RaysProjections {
+struct RaysProjections<'a> {
+    scene: &'a Scene,
     rays: Rays,
     min_toi: Reals,
     obstacle_reflectances: Reals,
@@ -46,9 +37,10 @@ struct RaysProjections {
 
 const MIN_TOI: f32 = 0.001f32;
 
-impl RaysProjections {
-    fn new(rays: Rays, max_depth: usize) -> RaysProjections {
+impl<'a> RaysProjections<'a> {
+    fn new(scene: &'a Scene, rays: Rays, max_depth: usize) -> RaysProjections<'a> {
         RaysProjections {
+            scene,
             rays,
             min_toi: Reals::splat(std::f32::MAX),
             obstacle_reflectances: Reals::splat(std::f32::MAX),
@@ -60,18 +52,12 @@ impl RaysProjections {
         }
     }
 
-    fn with_axis_aligned_plane(
-        &mut self,
-        axis: Axis,
-        offset_within_axis: Real,
-        normal: Vector,
-        color: Color,
-        reflectance: Real,
-    ) {
-        let offset_within_axis = Reals::splat(offset_within_axis);
-        let normal = Vectors::from_single(normal);
-        let color = Colors::from_single(color);
-        let reflectance = Reals::splat(reflectance);
+    fn with_axis_aligned_plane(&mut self, plane: Plane) {
+        let axis = self.scene.plane_alignment_axis(plane);
+        let offset_within_axis = Reals::splat(self.scene.plane_offset(plane));
+        let normal = Vectors::from_single(self.scene.plane_normal(plane));
+        let color = Colors::from_single(self.scene.obstacle_color(Obstacle::Plane(plane)));
+        let reflectance = Reals::splat(self.scene.obstacle_reflectance(Obstacle::Plane(plane)));
 
         let toi =
             (offset_within_axis - self.rays.origins.get_axis(axis)) / self.rays.dirs.get_axis(axis);
@@ -98,16 +84,12 @@ impl RaysProjections {
         self.obstacle_normals.update_if(mask, normal);
     }
 
-    fn with_sphere(
-        &mut self,
-        sphere_pos: Point,
-        sphere_radius: Real,
-        color: Color,
-        reflectance: Real,
-    ) {
-        let sphere_pos = Colors::from_single(sphere_pos);
-        let color = Colors::from_single(color);
-        let reflectance = Reals::splat(reflectance);
+    fn with_sphere(&mut self, sphere: Sphere) {
+        let sphere_pos = Colors::from_single(self.scene.sphere_pos(sphere));
+        let sphere_radius = self.scene.sphere_radius(sphere);
+        let color = Colors::from_single(self.scene.obstacle_color(Obstacle::Sphere(sphere)));
+        let reflectance = Reals::splat(self.scene.obstacle_reflectance(Obstacle::Sphere(sphere)));
+
         let deltas = self.rays.origins - sphere_pos;
 
         let dirs_squared = self.rays.dirs * self.rays.dirs;
