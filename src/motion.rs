@@ -94,7 +94,7 @@ impl MotionTicker {
     }
 
     fn move_paddle(&self, scene: &mut Scene, paddle: Sphere, controls: PaddleControls) {
-        let mut new_pos = scene.sphere_pos(paddle) + controls.to_vector(0.1);
+        let mut new_pos = scene.sphere_pos(paddle) + controls.to_vector(0.02);
         *new_pos.x_mut() = new_pos.x().clamp(
             scene.plane_offset(Plane::Left) + 0.1,
             scene.plane_offset(Plane::Right) - 0.1,

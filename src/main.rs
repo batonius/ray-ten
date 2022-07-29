@@ -7,11 +7,13 @@ const IMAGE_HEIGHT: u16 = 900;
 const MAX_DEPTH: usize = 5;
 const SAMPLES_PER_PIXEL: usize = 4;
 
+mod ai;
 mod math;
 mod motion;
 mod render;
 mod scene;
 
+use ai::control_far_paddle;
 use motion::{MotionTicker, PaddleControls};
 use render::{camera::Camera, renderer::Renderer};
 use scene::{Scene, Sphere};
@@ -50,11 +52,12 @@ async fn main() {
             is_key_down(KeyCode::Left),
             is_key_down(KeyCode::Right),
         );
+        let ai_paddle_controls = control_far_paddle(&scene);
         let _motion_result = motion_ticker.tick(
             &mut scene,
             get_frame_time(),
             player_paddle_controls,
-            PaddleControls::still(),
+            ai_paddle_controls,
         );
         let near_paddle_pos = scene.sphere_pos(Sphere::NearPaddle);
         camera.move_origin_to(near_paddle_pos.x(), near_paddle_pos.y());
