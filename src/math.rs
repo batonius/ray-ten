@@ -240,6 +240,14 @@ impl Point {
         self.0[2]
     }
 
+    pub fn get_axis(&self, axis: Axis) -> Real {
+        match axis {
+            Axis::XS => self.x(),
+            Axis::YS => self.y(),
+            Axis::ZS => self.z(),
+        }
+    }
+
     pub fn x_mut(&mut self) -> &mut Real {
         &mut self.0[0]
     }
@@ -251,12 +259,31 @@ impl Point {
     pub fn z_mut(&mut self) -> &mut Real {
         &mut self.0[2]
     }
+
+    pub fn get_axis_mut(&mut self, axis: Axis) -> &mut Real {
+        match axis {
+            Axis::XS => self.x_mut(),
+            Axis::YS => self.y_mut(),
+            Axis::ZS => self.z_mut(),
+        }
+    }
+
+    pub fn dot(&self, rhs: Point) -> Real {
+        self.x() * rhs.x() + self.y() * rhs.y() + self.z() * rhs.z()
+    }
 }
 
 impl Add<Point> for Point {
     type Output = Point;
     fn add(self, rhs: Point) -> Self::Output {
         Point(self.0 + rhs.0)
+    }
+}
+
+impl Sub<Point> for Point {
+    type Output = Point;
+    fn sub(self, rhs: Point) -> Self::Output {
+        Point(self.0 - rhs.0)
     }
 }
 

@@ -7,15 +7,15 @@ use std::simd::{SimdFloat, SimdPartialEq, SimdPartialOrd, StdFloat};
 pub fn trace_rays(scene: &Scene, rays: Rays, max_depth: usize) -> Colors {
     let mut projections = RaysProjections::new(scene, rays, max_depth);
     loop {
-        projections.with_sphere(Sphere::Ball);
-        projections.with_sphere(Sphere::NearPaddle);
-        projections.with_sphere(Sphere::FarPaddle);
-        projections.with_axis_aligned_plane(Plane::Top);
-        projections.with_axis_aligned_plane(Plane::Bottom);
-        projections.with_axis_aligned_plane(Plane::Left);
-        projections.with_axis_aligned_plane(Plane::Right);
-        projections.with_axis_aligned_plane(Plane::Near);
-        projections.with_axis_aligned_plane(Plane::Far);
+        projections.intersect_with_sphere(Sphere::Ball);
+        projections.intersect_with_sphere(Sphere::NearPaddle);
+        projections.intersect_with_sphere(Sphere::FarPaddle);
+        projections.intersect_with_aa_plane(Plane::Top);
+        projections.intersect_with_aa_plane(Plane::Bottom);
+        projections.intersect_with_aa_plane(Plane::Left);
+        projections.intersect_with_aa_plane(Plane::Right);
+        projections.intersect_with_aa_plane(Plane::Near);
+        projections.intersect_with_aa_plane(Plane::Far);
         if projections.reflect() {
             break;
         }
@@ -52,7 +52,7 @@ impl<'a> RaysProjections<'a> {
         }
     }
 
-    fn with_axis_aligned_plane(&mut self, plane: Plane) {
+    fn intersect_with_aa_plane(&mut self, plane: Plane) {
         let axis = self.scene.plane_alignment_axis(plane);
         let offset_within_axis = Reals::splat(self.scene.plane_offset(plane));
         let normal = Vectors::from_single(self.scene.plane_normal(plane));
@@ -84,7 +84,7 @@ impl<'a> RaysProjections<'a> {
         self.obstacle_normals.update_if(mask, normal);
     }
 
-    fn with_sphere(&mut self, sphere: Sphere) {
+    fn intersect_with_sphere(&mut self, sphere: Sphere) {
         let sphere_pos = Colors::from_single(self.scene.sphere_pos(sphere));
         let sphere_radius = self.scene.sphere_radius(sphere);
         let color = Colors::from_single(self.scene.obstacle_color(Obstacle::Sphere(sphere)));
