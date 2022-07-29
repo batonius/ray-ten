@@ -293,3 +293,10 @@ impl Mul<Real> for Point {
         Point(self.0 * Simd::<Real, 4>::splat(rhs))
     }
 }
+
+impl Div<Real> for Point {
+    type Output = Point;
+    fn div(self, rhs: Real) -> Self::Output {
+        Point(self.0 / Simd::<Real, 4>::splat(rhs))
+    }
+}

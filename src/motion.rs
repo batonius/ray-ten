@@ -1,4 +1,4 @@
-use crate::math::{Axis, Real, Vector};
+use crate::math::{Axis, Point, Real, Vector};
 use crate::scene::{Obstacle, Plane, Scene, Sphere};
 
 #[derive(Clone, Copy, Debug)]
@@ -50,7 +50,7 @@ pub struct MotionTicker {
 impl MotionTicker {
     pub fn new() -> Self {
         Self {
-            ball_speed: Vector::new(1.5, 1.5, -1.5),
+            ball_speed: Vector::new(0.5, 1.5, -5.0),
         }
     }
 
@@ -71,11 +71,22 @@ impl MotionTicker {
             (Axis::YS, Plane::Bottom, Plane::Top),
             (Axis::ZS, Plane::Far, Plane::Near),
         ] {
-            if let Some(plane) =
-                self.collide_sphere_with_plane(axis, scene, Sphere::Ball, min_plane, max_plane)
+            if let Some((new_pos, plane)) =
+                Self::collide_sphere_with_planes(axis, scene, Sphere::Ball, min_plane, max_plane)
             {
+                scene.move_sphere_to(Sphere::Ball, new_pos);
                 self.ball_speed = Self::bounce(self.ball_speed, scene.plane_normal(plane));
                 return MotionResult::Colision(Obstacle::Plane(plane));
+            }
+        }
+
+        for sphere in [Sphere::FarPaddle, Sphere::NearPaddle] {
+            if let Some((new_pos, normal)) =
+                Self::collide_sphere_with_sphere(scene, Sphere::Ball, sphere)
+            {
+                scene.move_sphere_to(Sphere::Ball, new_pos);
+                self.ball_speed = Self::bounce(self.ball_speed, normal);
+                return MotionResult::Colision(Obstacle::Sphere(sphere));
             }
         }
 
@@ -95,14 +106,13 @@ impl MotionTicker {
         scene.move_sphere_to(paddle, new_pos);
     }
 
-    fn collide_sphere_with_plane(
-        &mut self,
+    fn collide_sphere_with_planes(
         axis: Axis,
-        scene: &mut Scene,
+        scene: &Scene,
         sphere: Sphere,
         min_plane: Plane,
         max_plane: Plane,
-    ) -> Option<Plane> {
+    ) -> Option<(Point, Plane)> {
         let mut sphere_pos = scene.sphere_pos(sphere);
         let min_plane_offset = scene.plane_offset(min_plane);
         let max_plane_offset = scene.plane_offset(max_plane);
@@ -110,14 +120,36 @@ impl MotionTicker {
 
         if (sphere_pos.get_axis(axis) - min_plane_offset) < radius {
             *sphere_pos.get_axis_mut(axis) = min_plane_offset + radius;
-            scene.move_sphere_to(sphere, sphere_pos);
-            return Some(min_plane);
+            return Some((sphere_pos, min_plane));
         }
 
         if (max_plane_offset - sphere_pos.get_axis(axis)) < radius {
             *sphere_pos.get_axis_mut(axis) = max_plane_offset - radius;
-            scene.move_sphere_to(sphere, sphere_pos);
-            return Some(max_plane);
+            return Some((sphere_pos, max_plane));
+        }
+
+        None
+    }
+
+    fn collide_sphere_with_sphere(
+        scene: &Scene,
+        sphere_a: Sphere,
+        sphere_b: Sphere,
+    ) -> Option<(Point, Vector)> {
+        let sphere_a_pos = scene.sphere_pos(sphere_a);
+        let sphere_b_pos = scene.sphere_pos(sphere_b);
+        let sphere_a_radius = scene.sphere_radius(sphere_a);
+        let sphere_b_radius = scene.sphere_radius(sphere_b);
+
+        let diff = sphere_a_pos - sphere_b_pos;
+        let distance = (diff.x() * diff.x() + diff.y() * diff.y() + diff.z() * diff.z()).sqrt();
+
+        if distance < (sphere_a_radius + sphere_b_radius) {
+            let normalized_diff = diff / distance;
+            return Some((
+                sphere_b_pos + normalized_diff * (sphere_a_radius + sphere_b_radius),
+                normalized_diff,
+            ));
         }
 
         None
