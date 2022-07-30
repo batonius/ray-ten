@@ -389,6 +389,7 @@ name = "ray-ten"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "lazy_static",
  "macroquad",
  "rand",
  "rayon",

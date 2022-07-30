@@ -8,6 +8,7 @@ anyhow = "1"
 rand = "0.8"
 rayon = "1.5"
 macroquad = { version ="0.3", default-features=false, features = [] }
+lazy_static = "1.4.0"
 
 [profile.release]
 lto = true
