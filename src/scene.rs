@@ -53,7 +53,7 @@ const SPHERES_COLORS: [Color; SPHERES_COUNT] = [
     Color::new(1.0, 1.0, 1.0),
     Color::new(0.0, 0.0, 0.0),
 ];
-const SPHERES_REFLECTANCE: [Real; SPHERES_COUNT] = [0.5, 0.3, 0.3];
+const SPHERES_REFLECTANCE: [Real; SPHERES_COUNT] = [0.5, 1.0, 1.0];
 
 pub struct Scene {
     ball_pos: Point,

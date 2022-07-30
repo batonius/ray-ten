@@ -13,7 +13,7 @@ impl Camera {
         let view_port_height = view_port_width / aspect_ratio;
 
         Camera {
-            origin: Point::new(1.0, -1.0, 0.0),
+            origin: Point::new(0.0, 0.0, 0.9),
             view_port_base: Point::new(-view_port_width / 2.0, view_port_height / 2.0, -1.0),
             view_port_x_axis: Vector::new(view_port_width, 0.0, 0.0),
             view_port_y_axis: Vector::new(0.0, -view_port_height, 0.0),
@@ -29,9 +29,7 @@ impl Camera {
         let mut dirs = Points::from_single(self.view_port_base);
         dirs += Points::from_single(self.view_port_x_axis) * x_offsets;
         dirs += Points::from_single(self.view_port_y_axis) * y_offsets;
-        Rays {
-            origins: Points::from_single(self.origin),
-            dirs,
-        }
+        let origins = Points::from_single(self.origin) + dirs * 0.91;
+        Rays { origins, dirs }
     }
 }
