@@ -45,12 +45,16 @@ pub enum MotionResult {
 #[derive(Clone, Copy, Debug)]
 pub struct MotionTicker {
     ball_speed: Vector,
+    near_paddle_speed: Vector,
+    far_paddle_speed: Vector,
 }
 
 impl MotionTicker {
     pub fn new() -> Self {
         Self {
             ball_speed: Vector::new(0.5, 1.5, -5.0),
+            near_paddle_speed: Vector::new(0.0, 0.0, 0.0),
+            far_paddle_speed: Vector::new(0.0, 0.0, 0.0),
         }
     }
 
@@ -63,8 +67,20 @@ impl MotionTicker {
     ) -> MotionResult {
         let new_ball_pos = scene.sphere_pos(Sphere::Ball) + self.ball_speed * elapsed;
         scene.move_sphere_to(Sphere::Ball, new_ball_pos);
-        self.move_paddle(scene, Sphere::FarPaddle, far_paddle_controls);
-        self.move_paddle(scene, Sphere::NearPaddle, near_paddle_controls);
+        Self::move_paddle(
+            scene,
+            elapsed,
+            Sphere::FarPaddle,
+            far_paddle_controls,
+            &mut self.far_paddle_speed,
+        );
+        Self::move_paddle(
+            scene,
+            elapsed,
+            Sphere::NearPaddle,
+            near_paddle_controls,
+            &mut self.near_paddle_speed,
+        );
 
         for (axis, min_plane, max_plane) in [
             (Axis::XS, Plane::Left, Plane::Right),
@@ -93,16 +109,31 @@ impl MotionTicker {
         MotionResult::NoCollision
     }
 
-    fn move_paddle(&self, scene: &mut Scene, paddle: Sphere, controls: PaddleControls) {
-        let mut new_pos = scene.sphere_pos(paddle) + controls.to_vector(0.02);
-        *new_pos.x_mut() = new_pos.x().clamp(
-            scene.plane_offset(Plane::Left) + 0.1,
-            scene.plane_offset(Plane::Right) - 0.1,
-        );
-        *new_pos.y_mut() = new_pos.y().clamp(
-            scene.plane_offset(Plane::Bottom) + 0.1,
-            scene.plane_offset(Plane::Top) - 0.1,
-        );
+    fn move_paddle(
+        scene: &mut Scene,
+        elapsed: Real,
+        paddle: Sphere,
+        controls: PaddleControls,
+        paddle_speed: &mut Vector,
+    ) {
+        *paddle_speed = *paddle_speed * 0.7f32.powf(elapsed) + controls.to_vector(2.0) * elapsed;
+        let mut new_pos = scene.sphere_pos(paddle) + *paddle_speed * elapsed;
+
+        let left_limit = scene.plane_offset(Plane::Left) + 1.0;
+        let right_limit = scene.plane_offset(Plane::Right) - 1.0;
+        let bottom_limit = scene.plane_offset(Plane::Bottom) + 1.0;
+        let top_limit = scene.plane_offset(Plane::Top) - 1.0;
+
+        if new_pos.x() <= left_limit || new_pos.x() >= right_limit {
+            *paddle_speed.x_mut() = -paddle_speed.x();
+        }
+
+        if new_pos.y() <= bottom_limit || new_pos.y() >= top_limit {
+            *paddle_speed.y_mut() = -paddle_speed.y();
+        }
+
+        *new_pos.x_mut() = new_pos.x().clamp(left_limit, right_limit);
+        *new_pos.y_mut() = new_pos.y().clamp(bottom_limit, top_limit);
         scene.move_sphere_to(paddle, new_pos);
     }
 

@@ -65,8 +65,8 @@ impl Scene {
     pub fn new() -> Scene {
         Scene {
             ball_pos: Point::new(-2.0, -1.0, -6.0),
-            near_paddle_pos: Point::new(0.0, 0.0, 3.9),
-            far_paddle_pos: Point::new(0.0, 0.0, -19.9),
+            near_paddle_pos: Point::new(0.0, 0.0, 3.87),
+            far_paddle_pos: Point::new(0.0, 0.0, -19.87),
         }
     }
 
