@@ -52,7 +52,7 @@ pub struct MotionTicker {
 impl MotionTicker {
     pub fn new() -> Self {
         Self {
-            ball_speed: Vector::new(0.5, 1.5, -5.0),
+            ball_speed: Vector::new(2.5, 5.5, -5.0),
             near_paddle_speed: Vector::new(0.0, 0.0, 0.0),
             far_paddle_speed: Vector::new(0.0, 0.0, 0.0),
         }
