@@ -300,3 +300,30 @@ impl Div<Real> for Point {
         Point(self.0 / Simd::<Real, 4>::splat(rhs))
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct Directions {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
+}
+
+impl Directions {
+    pub fn new(up: bool, down: bool, left: bool, right: bool) -> Self {
+        Self {
+            up,
+            down,
+            left,
+            right,
+        }
+    }
+
+    pub fn to_vector(self, speed: Real) -> Vector {
+        Vector::new(
+            speed * self.right as usize as Real + (-speed) * self.left as usize as Real,
+            speed * self.up as usize as Real + (-speed) * self.down as usize as Real,
+            0.0,
+        )
+    }
+}

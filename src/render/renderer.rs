@@ -47,7 +47,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&self, scene: &Scene, camera: &Camera, buffer: &mut [[u8; 4]]) {
+    pub fn render(&self, scene: &Scene, camera: &Camera, coef: f32, buffer: &mut [[u8; 4]]) {
         buffer
             .par_chunks_exact_mut(LANES)
             .enumerate()
@@ -73,9 +73,9 @@ impl Renderer {
                 pixels_colors /= Reals::splat(self.samples_per_pixel as f32);
                 pixels_colors = pixels_colors.sqrt().normalize();
                 for (i, pixel) in slice.iter_mut().enumerate().take(LANES) {
-                    pixel[0] = (pixels_colors.xs[i] * 255.0) as u8;
-                    pixel[1] = (pixels_colors.ys[i] * 255.0) as u8;
-                    pixel[2] = (pixels_colors.zs[i] * 255.0) as u8;
+                    pixel[0] = (pixels_colors.xs[i] * 255.0 * coef) as u8;
+                    pixel[1] = (pixels_colors.ys[i] * 255.0 * coef) as u8;
+                    pixel[2] = (pixels_colors.zs[i] * 255.0 * coef) as u8;
                 }
             });
     }

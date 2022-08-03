@@ -1,40 +1,5 @@
-use crate::math::{Axis, Point, Real, Vector};
+use crate::math::{Axis, Directions, Point, Real, Vector};
 use crate::scene::{Obstacle, Plane, Scene, Sphere};
-
-#[derive(Clone, Copy, Debug)]
-pub struct PaddleControls {
-    up: bool,
-    down: bool,
-    left: bool,
-    right: bool,
-}
-
-impl PaddleControls {
-    pub fn still() -> Self {
-        Self {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-        }
-    }
-    pub fn new(up: bool, down: bool, left: bool, right: bool) -> Self {
-        Self {
-            up,
-            down,
-            left,
-            right,
-        }
-    }
-
-    fn to_vector(self, speed: Real) -> Vector {
-        Vector::new(
-            speed * self.right as usize as Real + (-speed) * self.left as usize as Real,
-            speed * self.up as usize as Real + (-speed) * self.down as usize as Real,
-            0.0,
-        )
-    }
-}
 
 #[derive(Clone, Copy, Debug)]
 pub enum MotionResult {
@@ -62,8 +27,8 @@ impl MotionTicker {
         &mut self,
         scene: &mut Scene,
         elapsed: Real,
-        near_paddle_controls: PaddleControls,
-        far_paddle_controls: PaddleControls,
+        near_paddle_directions: Directions,
+        far_paddle_directions: Directions,
     ) -> MotionResult {
         let new_ball_pos = scene.sphere_pos(Sphere::Ball) + self.ball_speed * elapsed;
         scene.move_sphere_to(Sphere::Ball, new_ball_pos);
@@ -71,14 +36,14 @@ impl MotionTicker {
             scene,
             elapsed,
             Sphere::FarPaddle,
-            far_paddle_controls,
+            far_paddle_directions,
             &mut self.far_paddle_speed,
         );
         Self::move_paddle(
             scene,
             elapsed,
             Sphere::NearPaddle,
-            near_paddle_controls,
+            near_paddle_directions,
             &mut self.near_paddle_speed,
         );
 
@@ -113,10 +78,10 @@ impl MotionTicker {
         scene: &mut Scene,
         elapsed: Real,
         paddle: Sphere,
-        controls: PaddleControls,
+        directions: Directions,
         paddle_speed: &mut Vector,
     ) {
-        *paddle_speed = *paddle_speed * 0.7f32.powf(elapsed) + controls.to_vector(2.0) * elapsed;
+        *paddle_speed = *paddle_speed * 0.7f32.powf(elapsed) + directions.to_vector(2.0) * elapsed;
         let mut new_pos = scene.sphere_pos(paddle) + *paddle_speed * elapsed;
 
         let left_limit = scene.plane_offset(Plane::Left) + 1.0;
