@@ -7,6 +7,9 @@ pub enum MotionResult {
     Colision(Obstacle),
 }
 
+const PADDLE_FRICTION: Real = 0.7;
+const PADDLE_ACCELERATION: Real = 2.0;
+
 #[derive(Clone, Copy, Debug)]
 pub struct MotionTicker {
     ball_speed: Vector,
@@ -17,7 +20,7 @@ pub struct MotionTicker {
 impl MotionTicker {
     pub fn new() -> Self {
         Self {
-            ball_speed: Vector::new(2.5, 5.5, -5.0),
+            ball_speed: Vector::new(1.5, 4.5, -4.0),
             near_paddle_speed: Vector::new(0.0, 0.0, 0.0),
             far_paddle_speed: Vector::new(0.0, 0.0, 0.0),
         }
@@ -81,7 +84,8 @@ impl MotionTicker {
         directions: Directions,
         paddle_speed: &mut Vector,
     ) {
-        *paddle_speed = *paddle_speed * 0.7f32.powf(elapsed) + directions.to_vector(2.0) * elapsed;
+        *paddle_speed = *paddle_speed * PADDLE_FRICTION.powf(elapsed)
+            + directions.to_vector(PADDLE_ACCELERATION) * elapsed;
         let mut new_pos = scene.sphere_pos(paddle) + *paddle_speed * elapsed;
 
         let left_limit = scene.plane_offset(Plane::Left) + 1.0;

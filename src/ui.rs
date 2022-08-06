@@ -20,7 +20,6 @@ const HUD_SHADE_COLOR: Color = GRAY;
 const HUD_FONT_SCALE: f32 = 0.1;
 
 const DEBUG_FG_COLOR: Color = DARKGRAY;
-const DEBUG_SHADE_COLOR: Color = GRAY;
 const DEBUG_FONT_SCALE: f32 = 0.05;
 
 const SHADE_OFFSET: f32 = 2.0;

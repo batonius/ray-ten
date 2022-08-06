@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rayon = "1.5"
 macroquad = { version ="0.3" }
 lazy_static = "1.4.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = "1.5"
 
 [profile.release]
 lto = true
 codegen-units = 1
-debug = 1
 panic = "abort"
+strip = true

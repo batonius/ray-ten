@@ -92,6 +92,15 @@ impl UIState {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum TouchDirection {
+    Center,
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
 pub struct GameDriver {
     width: u16,
     height: u16,
@@ -141,13 +150,16 @@ impl GameDriver {
         }
         match self.ui_state {
             UIState::Hud => {
-                if is_key_down(KeyCode::Escape) {
+                if is_key_down(KeyCode::Escape)
+                    || Self::is_direction_clicked(TouchDirection::Center)
+                {
                     self.since_last_selection_change = 0.0;
                     return Some(Action::Pause);
                 }
             }
             UIState::MainMenu | UIState::PauseMenu | UIState::EndGame => {
-                if is_key_down(KeyCode::Enter) {
+                if is_key_down(KeyCode::Enter) || Self::is_direction_clicked(TouchDirection::Center)
+                {
                     self.since_last_selection_change = 0.0;
                     return Some(self.ui_state.menu_items()[self.current_selected_item].1);
                 }
@@ -156,12 +168,18 @@ impl GameDriver {
                     self.since_last_selection_change = 0.0;
                     return Some(Action::Continue);
                 }
-                if is_key_down(KeyCode::Up) {
+                if is_key_down(KeyCode::Up)
+                    || Self::is_direction_clicked(TouchDirection::Top)
+                    || Self::is_direction_clicked(TouchDirection::Left)
+                {
                     self.current_selected_item =
                         (self.current_selected_item - 1) % self.ui_state.menu_items().len();
                     self.since_last_selection_change = 0.0;
                 }
-                if is_key_down(KeyCode::Down) {
+                if is_key_down(KeyCode::Down)
+                    || Self::is_direction_clicked(TouchDirection::Bottom)
+                    || Self::is_direction_clicked(TouchDirection::Right)
+                {
                     self.current_selected_item =
                         (self.current_selected_item + 1) % self.ui_state.menu_items().len();
                     self.since_last_selection_change = 0.0;
@@ -207,10 +225,10 @@ impl GameDriver {
         let far_directions = control_far_paddle(&self.game_state.scene);
         let near_directions = if let UIState::Hud = self.ui_state {
             Directions::new(
-                is_key_down(KeyCode::Up),
-                is_key_down(KeyCode::Down),
-                is_key_down(KeyCode::Left),
-                is_key_down(KeyCode::Right),
+                is_key_down(KeyCode::Up) || Self::is_direction_pressed(TouchDirection::Top),
+                is_key_down(KeyCode::Down) || Self::is_direction_pressed(TouchDirection::Bottom),
+                is_key_down(KeyCode::Left) || Self::is_direction_pressed(TouchDirection::Left),
+                is_key_down(KeyCode::Right) || Self::is_direction_pressed(TouchDirection::Right),
             )
         } else {
             far_directions
@@ -302,5 +320,31 @@ impl GameDriver {
             )
             .as_str(),
         );
+    }
+
+    fn is_pos_in_direction(direction: TouchDirection, pos: Vec2) -> bool {
+        match direction {
+            TouchDirection::Center => {
+                pos.x >= -0.2 && pos.x <= 0.2 && pos.y >= -0.2 && pos.y <= 0.2
+            }
+            TouchDirection::Left => pos.x < -0.2,
+            TouchDirection::Right => pos.x > 0.2,
+            TouchDirection::Top => pos.y < -0.2,
+            TouchDirection::Bottom => pos.y > 0.2,
+        }
+    }
+
+    fn is_direction_pressed(direction: TouchDirection) -> bool {
+        if !is_mouse_button_down(MouseButton::Left) {
+            return false;
+        }
+        Self::is_pos_in_direction(direction, mouse_position_local())
+    }
+
+    fn is_direction_clicked(direction: TouchDirection) -> bool {
+        if !is_mouse_button_pressed(MouseButton::Left) {
+            return false;
+        }
+        Self::is_pos_in_direction(direction, mouse_position_local())
     }
 }
