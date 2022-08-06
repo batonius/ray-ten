@@ -294,7 +294,7 @@ impl GameDriver {
         }
         ui::show_debug_bottom_left(
             format!(
-                "fps: {}, mlns rays per second: {}",
+                "fps: {}, rps: {:.4}M",
                 get_fps(),
                 ((self.height as f32) * (self.width as f32) * (SAMPLES_PER_PIXEL as f32)
                     / get_frame_time()

@@ -1,7 +1,21 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::simd::{Mask as SimdMask, Simd, SimdFloat, StdFloat};
 
+#[cfg(target_feature = "avx512")]
+pub const LANES: usize = 16usize;
+
+#[cfg(all(target_feature = "avx", not(target_feature = "avx512")))]
 pub const LANES: usize = 8usize;
+
+#[cfg(target_feature = "simd128")]
+pub const LANES: usize = 4usize;
+
+#[cfg(not(any(
+    target_feature = "simd128",
+    target_feature = "avx",
+    target_feature = "avx512"
+)))]
+pub const LANES: usize = 4usize;
 
 pub type Real = f32;
 pub type Integer = i32;
