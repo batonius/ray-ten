@@ -16,6 +16,7 @@ const MENU_FONT_SCALE: f32 = 0.1;
 const MENU_LINE_SPACING: f32 = 1.2;
 
 const HUD_FG_COLOR: Color = GREEN;
+const HUD_BAD_FG_COLOR: Color = RED;
 const HUD_SHADE_COLOR: Color = GRAY;
 const HUD_FONT_SCALE: f32 = 0.1;
 
@@ -135,10 +136,11 @@ pub fn show_hud_top_left(text: &str) {
     );
 }
 
-pub fn show_hud_top_right(text: &str) {
+pub fn show_hud_top_right(text: &str, good: bool) {
     let screen_width = screen_width();
     let screen_height = screen_height();
     let font_size = (HUD_FONT_SCALE * screen_height) as u16;
+    let color = if good { HUD_FG_COLOR } else { HUD_BAD_FG_COLOR };
     let text_dimensions = measure_text(text, Some(*FONT), font_size, 1.0);
     draw_text_ex(
         text,
@@ -157,7 +159,7 @@ pub fn show_hud_top_right(text: &str) {
         screen_width - text_dimensions.width,
         text_dimensions.height,
         TextParams {
-            color: HUD_FG_COLOR,
+            color: color,
             font_size: font_size,
             font: *FONT,
             ..Default::default()

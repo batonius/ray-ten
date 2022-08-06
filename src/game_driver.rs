@@ -10,12 +10,22 @@ use crate::ui;
 const MAX_DEPTH: usize = 5;
 const SAMPLES_PER_PIXEL: usize = 1;
 const MENU_CHANGE_TIMEOUT: f32 = 0.2;
+const COLLISION_NOTICE_TIMEOUT: f32 = 1.0;
 
 struct GameState {
     camera: Camera,
     scene: Scene,
     motion_ticker: MotionTicker,
     renderer: Renderer,
+}
+
+#[derive(Clone, Copy)]
+enum AdvanceResult {
+    PlayerHit,
+    AIHit,
+    PlayerMiss,
+    AIMiss,
+    None,
 }
 
 impl GameState {
@@ -33,7 +43,7 @@ impl GameState {
         elapsed: f32,
         near_paddle_directions: Directions,
         far_paddle_directions: Directions,
-    ) -> isize {
+    ) -> AdvanceResult {
         let motion_result = self.motion_ticker.tick(
             &mut self.scene,
             elapsed,
@@ -45,9 +55,13 @@ impl GameState {
             .move_origin_to(near_paddle_pos.x(), near_paddle_pos.y());
 
         match motion_result {
-            MotionResult::Colision(Obstacle::Plane(Plane::Near)) => -1,
-            MotionResult::Colision(Obstacle::Plane(Plane::Far)) => 1,
-            _ => 0,
+            MotionResult::Colision(Obstacle::Plane(Plane::Near)) => AdvanceResult::PlayerMiss,
+            MotionResult::Colision(Obstacle::Plane(Plane::Far)) => AdvanceResult::AIMiss,
+            MotionResult::Colision(Obstacle::Sphere(Sphere::NearPaddle)) => {
+                AdvanceResult::PlayerHit
+            }
+            MotionResult::Colision(Obstacle::Sphere(Sphere::FarPaddle)) => AdvanceResult::AIHit,
+            _ => AdvanceResult::None,
         }
     }
 
@@ -108,6 +122,8 @@ pub struct GameDriver {
     ui_state: UIState,
     current_selected_item: usize,
     since_last_selection_change: f32,
+    since_last_collision: f32,
+    last_collision: bool,
     score: isize,
     image: Image,
     texture: Texture2D,
@@ -125,6 +141,8 @@ impl GameDriver {
             ui_state: UIState::MainMenu,
             current_selected_item: 0,
             since_last_selection_change: 0.0,
+            since_last_collision: COLLISION_NOTICE_TIMEOUT + 1.0,
+            last_collision: false,
             score: 0,
             image,
             texture,
@@ -145,6 +163,8 @@ impl GameDriver {
 
     fn process_inputs(&mut self) -> Option<Action> {
         self.since_last_selection_change += get_frame_time();
+        self.since_last_collision += get_frame_time();
+
         if self.since_last_selection_change < MENU_CHANGE_TIMEOUT {
             return None;
         }
@@ -233,9 +253,26 @@ impl GameDriver {
         } else {
             far_directions
         };
-        self.score += self
+
+        match self
             .game_state
-            .advance(get_frame_time(), near_directions, far_directions);
+            .advance(get_frame_time(), near_directions, far_directions)
+        {
+            AdvanceResult::PlayerHit => {
+                self.since_last_collision = 0.0;
+                self.last_collision = true;
+            }
+            AdvanceResult::AIHit => {}
+            AdvanceResult::PlayerMiss => {
+                self.since_last_collision = 0.0;
+                self.last_collision = false;
+                self.score -= 1;
+            }
+            AdvanceResult::AIMiss => {
+                self.score += 1;
+            }
+            AdvanceResult::None => {}
+        }
     }
 
     fn draw(&mut self) {
@@ -276,6 +313,13 @@ impl GameDriver {
                     },
                 );
                 ui::show_hud_top_left(format!("Score: {}", self.score).as_str());
+                if self.since_last_collision < COLLISION_NOTICE_TIMEOUT {
+                    if self.last_collision {
+                        ui::show_hud_top_right("Hit!", true)
+                    } else {
+                        ui::show_hud_top_right("Miss!", false)
+                    }
+                }
             }
             UIState::PauseMenu => {
                 self.game_state.render(0.3, &mut self.image);
