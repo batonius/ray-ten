@@ -6,10 +6,6 @@ use crate::{
 };
 use rayon::prelude::*;
 
-use rand::distributions::Uniform;
-use rand::prelude::Distribution;
-use rand::thread_rng;
-
 pub struct Renderer {
     width: f32,
     height: f32,
@@ -20,21 +16,60 @@ pub struct Renderer {
     y_deltas: Vec<Reals>,
 }
 
+fn spread_samples(
+    top_left: (f32, f32),
+    bottom_right: (f32, f32),
+    x_deltas: &mut [Reals],
+    y_deltas: &mut [Reals],
+) {
+    let samples_left = x_deltas.len();
+    if samples_left == 1 {
+        x_deltas[0] = Reals::splat((top_left.0 + bottom_right.0) / 2.0);
+        y_deltas[0] = Reals::splat((top_left.1 + bottom_right.1) / 2.0);
+    } else {
+        let samples_count_a = samples_left / 2;
+        let (x_deltas_a, x_deltas_b) = x_deltas.split_at_mut(samples_count_a);
+        let (y_deltas_a, y_deltas_b) = y_deltas.split_at_mut(samples_count_a);
+        let width = bottom_right.0 - top_left.0;
+        let height = top_left.1 - bottom_right.1;
+        if width > height {
+            spread_samples(
+                top_left,
+                (top_left.0 + width / 2.0, bottom_right.1),
+                x_deltas_a,
+                y_deltas_a,
+            );
+            spread_samples(
+                (top_left.0 + width / 2.0, top_left.1),
+                bottom_right,
+                x_deltas_b,
+                y_deltas_b,
+            );
+        } else {
+            spread_samples(
+                top_left,
+                (bottom_right.0, top_left.1 + height / 2.0),
+                x_deltas_a,
+                y_deltas_a,
+            );
+            spread_samples(
+                (top_left.0, top_left.1 + height / 2.0),
+                bottom_right,
+                x_deltas_b,
+                y_deltas_b,
+            );
+        }
+    }
+}
+
 impl Renderer {
     pub fn new(dimensions: (u16, u16), samples_per_pixel: usize, max_depth: usize) -> Self {
         let (width, height) = dimensions;
         let lanes_per_line = width as usize / LANES;
-        let mut rng = thread_rng();
-        let unit_distr = Uniform::new(0.0f32, 1.0f32);
         let mut x_deltas = vec![ZEROS; samples_per_pixel];
         let mut y_deltas = vec![ZEROS; samples_per_pixel];
 
-        for sample in 0..samples_per_pixel {
-            for i in 0..LANES {
-                x_deltas[sample][i] = unit_distr.sample(&mut rng);
-                y_deltas[sample][i] = unit_distr.sample(&mut rng);
-            }
-        }
+        spread_samples((0.0, 1.0), (1.0, 0.0), &mut x_deltas, &mut y_deltas);
 
         Self {
             width: width as f32,
@@ -49,7 +84,8 @@ impl Renderer {
 
     pub fn render(&self, scene: &Scene, camera: &Camera, coef: f32, buffer: &mut [[u8; 4]]) {
         buffer
-            .par_chunks_exact_mut(LANES)
+            .chunks_exact_mut(LANES)
+            // .par_chunks_exact_mut(LANES)
             .enumerate()
             .for_each(|(n, slice)| {
                 let y = n / self.lanes_per_line;

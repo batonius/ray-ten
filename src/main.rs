@@ -5,8 +5,8 @@ use macroquad::prelude::*;
 #[macro_use]
 extern crate lazy_static;
 
-const IMAGE_WIDTH: u16 = 1600;
-const IMAGE_HEIGHT: u16 = 900;
+const IMAGE_WIDTH: u16 = 640;
+const IMAGE_HEIGHT: u16 = 360;
 
 mod ai;
 mod game_driver;

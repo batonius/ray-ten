@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-rand = "0.8"
 rayon = "1.5"
-macroquad = { version ="0.3", default-features=false, features = [] }
+macroquad = { version ="0.3" }
 lazy_static = "1.4.0"
 
 [profile.release]

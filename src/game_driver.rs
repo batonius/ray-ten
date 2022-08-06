@@ -6,11 +6,10 @@ use crate::motion::{MotionResult, MotionTicker};
 use crate::render::{camera::Camera, renderer::Renderer};
 use crate::scene::{Obstacle, Plane, Scene, Sphere};
 use crate::ui;
-use std::time::Instant;
 
 const MAX_DEPTH: usize = 5;
-const SAMPLES_PER_PIXEL: usize = 4;
-const MENU_CHANGE_TIMEOUT_MS: u128 = 300;
+const SAMPLES_PER_PIXEL: usize = 1;
+const MENU_CHANGE_TIMEOUT: f32 = 0.2;
 
 struct GameState {
     camera: Camera,
@@ -99,7 +98,7 @@ pub struct GameDriver {
     game_state: GameState,
     ui_state: UIState,
     current_selected_item: usize,
-    last_selection_changed_at: Instant,
+    since_last_selection_change: f32,
     score: isize,
     image: Image,
     texture: Texture2D,
@@ -109,13 +108,14 @@ impl GameDriver {
     pub fn new(width: u16, height: u16) -> Self {
         let image = Image::gen_image_color(width, height, WHITE);
         let texture = Texture2D::from_image(&image);
+        texture.set_filter(FilterMode::Nearest);
         GameDriver {
             width,
             height,
             game_state: GameState::new(width, height),
             ui_state: UIState::MainMenu,
             current_selected_item: 0,
-            last_selection_changed_at: Instant::now(),
+            since_last_selection_change: 0.0,
             score: 0,
             image,
             texture,
@@ -135,37 +135,36 @@ impl GameDriver {
     }
 
     fn process_inputs(&mut self) -> Option<Action> {
-        if self.last_selection_changed_at.elapsed().as_millis() < MENU_CHANGE_TIMEOUT_MS {
+        self.since_last_selection_change += get_frame_time();
+        if self.since_last_selection_change < MENU_CHANGE_TIMEOUT {
             return None;
         }
         match self.ui_state {
             UIState::Hud => {
                 if is_key_down(KeyCode::Escape) {
-                    self.last_selection_changed_at = Instant::now();
+                    self.since_last_selection_change = 0.0;
                     return Some(Action::Pause);
                 }
             }
             UIState::MainMenu | UIState::PauseMenu | UIState::EndGame => {
                 if is_key_down(KeyCode::Enter) {
-                    self.last_selection_changed_at = Instant::now();
+                    self.since_last_selection_change = 0.0;
                     return Some(self.ui_state.menu_items()[self.current_selected_item].1);
                 }
 
                 if is_key_down(KeyCode::Escape) && self.ui_state == UIState::PauseMenu {
-                    self.last_selection_changed_at = Instant::now();
+                    self.since_last_selection_change = 0.0;
                     return Some(Action::Continue);
                 }
-                if self.last_selection_changed_at.elapsed().as_millis() > MENU_CHANGE_TIMEOUT_MS {
-                    if is_key_down(KeyCode::Up) {
-                        self.current_selected_item =
-                            (self.current_selected_item - 1) % self.ui_state.menu_items().len();
-                        self.last_selection_changed_at = Instant::now();
-                    }
-                    if is_key_down(KeyCode::Down) {
-                        self.current_selected_item =
-                            (self.current_selected_item + 1) % self.ui_state.menu_items().len();
-                        self.last_selection_changed_at = Instant::now();
-                    }
+                if is_key_down(KeyCode::Up) {
+                    self.current_selected_item =
+                        (self.current_selected_item - 1) % self.ui_state.menu_items().len();
+                    self.since_last_selection_change = 0.0;
+                }
+                if is_key_down(KeyCode::Down) {
+                    self.current_selected_item =
+                        (self.current_selected_item + 1) % self.ui_state.menu_items().len();
+                    self.since_last_selection_change = 0.0;
                 }
             }
         }
@@ -183,12 +182,12 @@ impl GameDriver {
             Action::Pause => {
                 self.ui_state = UIState::PauseMenu;
                 self.current_selected_item = 0;
-                self.last_selection_changed_at = Instant::now();
+                self.since_last_selection_change = 0.0;
             }
             Action::EndGame => {
                 self.ui_state = UIState::EndGame;
                 self.current_selected_item = 0;
-                self.last_selection_changed_at = Instant::now();
+                self.since_last_selection_change = 0.0;
             }
             Action::Continue => {
                 self.ui_state = UIState::Hud;
@@ -196,7 +195,7 @@ impl GameDriver {
             Action::MainMenu => {
                 self.ui_state = UIState::MainMenu;
                 self.current_selected_item = 0;
-                self.last_selection_changed_at = Instant::now();
+                self.since_last_selection_change = 0.0;
             }
         }
     }
@@ -226,7 +225,16 @@ impl GameDriver {
             UIState::MainMenu => {
                 self.game_state.render(0.3, &mut self.image);
                 self.texture.update(&self.image);
-                draw_texture(self.texture, 0.0, 0.0, WHITE);
+                draw_texture_ex(
+                    self.texture,
+                    0.0,
+                    0.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(Vec2::new(screen_width(), screen_height())),
+                        ..Default::default()
+                    },
+                );
                 ui::show_title("ray ten");
                 ui::show_menu(
                     UIState::MainMenu
@@ -239,13 +247,31 @@ impl GameDriver {
             UIState::Hud => {
                 self.game_state.render(1.0, &mut self.image);
                 self.texture.update(&self.image);
-                draw_texture(self.texture, 0.0, 0.0, WHITE);
+                draw_texture_ex(
+                    self.texture,
+                    0.0,
+                    0.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(Vec2::new(screen_width(), screen_height())),
+                        ..Default::default()
+                    },
+                );
                 ui::show_hud_top_left(format!("Score: {}", self.score).as_str());
             }
             UIState::PauseMenu => {
                 self.game_state.render(0.3, &mut self.image);
                 self.texture.update(&self.image);
-                draw_texture(self.texture, 0.0, 0.0, WHITE);
+                draw_texture_ex(
+                    self.texture,
+                    0.0,
+                    0.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(Vec2::new(screen_width(), screen_height())),
+                        ..Default::default()
+                    },
+                );
                 ui::show_title("Paused");
                 ui::show_menu(
                     UIState::PauseMenu
@@ -266,5 +292,6 @@ impl GameDriver {
                 )
             }
         }
+        ui::show_hud_top_right(format!("FPS: {}", get_fps()).as_str());
     }
 }
