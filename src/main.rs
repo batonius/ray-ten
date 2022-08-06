@@ -5,8 +5,8 @@ use macroquad::prelude::*;
 #[macro_use]
 extern crate lazy_static;
 
-const IMAGE_WIDTH: u16 = 640;
-const IMAGE_HEIGHT: u16 = 360;
+const IMAGE_WIDTH: u16 = 1600;
+const IMAGE_HEIGHT: u16 = 900;
 
 mod ai;
 mod game_driver;
@@ -22,7 +22,7 @@ fn window_conf() -> Conf {
         fullscreen: false,
         window_height: IMAGE_HEIGHT as i32,
         window_width: IMAGE_WIDTH as i32,
-        window_resizable: false,
+        window_resizable: true,
         ..Default::default()
     }
 }

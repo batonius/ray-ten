@@ -292,6 +292,15 @@ impl GameDriver {
                 )
             }
         }
-        ui::show_hud_top_right(format!("FPS: {}", get_fps()).as_str());
+        ui::show_debug_bottom_left(
+            format!(
+                "fps: {}, mlns rays per second: {}",
+                get_fps(),
+                ((self.height as f32) * (self.width as f32) * (SAMPLES_PER_PIXEL as f32)
+                    / get_frame_time()
+                    / 1_000_000f32)
+            )
+            .as_str(),
+        );
     }
 }
