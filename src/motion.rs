@@ -50,6 +50,16 @@ impl MotionTicker {
             &mut self.near_paddle_speed,
         );
 
+        for sphere in [Sphere::FarPaddle, Sphere::NearPaddle] {
+            if let Some((new_pos, normal)) =
+                Self::collide_sphere_with_sphere(scene, Sphere::Ball, sphere)
+            {
+                scene.move_sphere_to(Sphere::Ball, new_pos);
+                self.ball_speed = Self::bounce(self.ball_speed, normal);
+                return MotionResult::Colision(Obstacle::Sphere(sphere));
+            }
+        }
+
         for (axis, min_plane, max_plane) in [
             (Axis::XS, Plane::Left, Plane::Right),
             (Axis::YS, Plane::Bottom, Plane::Top),
@@ -61,16 +71,6 @@ impl MotionTicker {
                 scene.move_sphere_to(Sphere::Ball, new_pos);
                 self.ball_speed = Self::bounce(self.ball_speed, scene.plane_normal(plane));
                 return MotionResult::Colision(Obstacle::Plane(plane));
-            }
-        }
-
-        for sphere in [Sphere::FarPaddle, Sphere::NearPaddle] {
-            if let Some((new_pos, normal)) =
-                Self::collide_sphere_with_sphere(scene, Sphere::Ball, sphere)
-            {
-                scene.move_sphere_to(Sphere::Ball, new_pos);
-                self.ball_speed = Self::bounce(self.ball_speed, normal);
-                return MotionResult::Colision(Obstacle::Sphere(sphere));
             }
         }
 

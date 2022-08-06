@@ -5,10 +5,15 @@ use macroquad::prelude::*;
 #[macro_use]
 extern crate lazy_static;
 
-const IMAGE_WIDTH: u16 = 800;
-const IMAGE_HEIGHT: u16 = 450;
+#[cfg(not(target_arch = "wasm32"))]
+const IMAGE_WIDTH: u16 = 1600;
+#[cfg(target_arch = "wasm32")]
+const IMAGE_WIDTH: u16 = 640;
+#[cfg(not(target_arch = "wasm32"))]
+const IMAGE_HEIGHT: u16 = 900;
+#[cfg(target_arch = "wasm32")]
+const IMAGE_HEIGHT: u16 = 360;
 
-mod ai;
 mod game_driver;
 mod math;
 mod motion;

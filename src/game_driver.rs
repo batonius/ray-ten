@@ -1,13 +1,15 @@
 use macroquad::prelude::*;
 
-use crate::ai::control_far_paddle;
-use crate::math::Directions;
+use crate::math::{Directions, Real};
 use crate::motion::{MotionResult, MotionTicker};
 use crate::render::{camera::Camera, renderer::Renderer};
 use crate::scene::{Obstacle, Plane, Scene, Sphere};
 use crate::ui;
 
 const MAX_DEPTH: usize = 5;
+#[cfg(not(target_arch = "wasm32"))]
+const SAMPLES_PER_PIXEL: usize = 2;
+#[cfg(target_arch = "wasm32")]
 const SAMPLES_PER_PIXEL: usize = 1;
 const MENU_CHANGE_TIMEOUT: f32 = 0.2;
 const COLLISION_NOTICE_TIMEOUT: f32 = 1.0;
@@ -71,6 +73,16 @@ impl GameState {
     }
 }
 
+pub fn control_far_paddle(scene: &Scene) -> Directions {
+    const EPSILON: Real = 0.1;
+    Directions::new(
+        (scene.sphere_pos(Sphere::Ball).y() - scene.sphere_pos(Sphere::FarPaddle).y()) > EPSILON,
+        (scene.sphere_pos(Sphere::FarPaddle).y() - scene.sphere_pos(Sphere::Ball).y()) > EPSILON,
+        (scene.sphere_pos(Sphere::FarPaddle).x() - scene.sphere_pos(Sphere::Ball).x()) > EPSILON,
+        (scene.sphere_pos(Sphere::Ball).x() - scene.sphere_pos(Sphere::FarPaddle).x()) > EPSILON,
+    )
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Action {
     NewGame,
@@ -89,7 +101,7 @@ const MENU_ITEMS: [&[(&str, Action)]; 4] = [
         ("Main menu", Action::EndGame),
         ("Exit", Action::Exit),
     ],
-    &[("Main menu", Action::MainMenu)],
+    &[("Continue", Action::MainMenu)],
 ];
 
 #[derive(Clone, Copy, PartialEq)]
