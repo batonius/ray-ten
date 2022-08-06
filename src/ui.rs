@@ -39,7 +39,7 @@ pub fn show_title(title: &str) {
             + SHADE_OFFSET,
         TextParams {
             color: TITLE_SHADE_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -51,7 +51,7 @@ pub fn show_title(title: &str) {
         (screen_height / 2.0 - title_dimensions.height) / 2.0 + title_dimensions.height,
         TextParams {
             color: TITLE_FG_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -99,7 +99,7 @@ pub fn show_menu<I: IntoIterator<Item = String>>(items: I, selected_item: usize)
             y,
             TextParams {
                 color: MENU_FG_COLOR,
-                font_size: font_size,
+                font_size,
                 font: *FONT,
                 ..Default::default()
             },
@@ -117,7 +117,7 @@ pub fn show_hud_top_left(text: &str) {
         title_dimensions.height + SHADE_OFFSET,
         TextParams {
             color: HUD_SHADE_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -129,7 +129,7 @@ pub fn show_hud_top_left(text: &str) {
         title_dimensions.height,
         TextParams {
             color: HUD_FG_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -148,7 +148,7 @@ pub fn show_hud_top_right(text: &str, good: bool) {
         text_dimensions.height + SHADE_OFFSET,
         TextParams {
             color: HUD_SHADE_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -159,8 +159,8 @@ pub fn show_hud_top_right(text: &str, good: bool) {
         screen_width - text_dimensions.width,
         text_dimensions.height,
         TextParams {
-            color: color,
-            font_size: font_size,
+            color,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
@@ -178,7 +178,7 @@ pub fn show_debug_bottom_left(text: &str) {
         screen_height - text_dimensions.offset_y,
         TextParams {
             color: DEBUG_FG_COLOR,
-            font_size: font_size,
+            font_size,
             font: *FONT,
             ..Default::default()
         },
