@@ -6,7 +6,7 @@ https://user-images.githubusercontent.com/153945/183267977-6cbcbf57-995d-468a-b7
 
 Reimagining of a 1986 ZX Spectrum game [room ten](https://www.mobygames.com/game/zx-spectrum/room-ten) made with ray tracing.
 Completely ignoring GPUs when rendering 3D graphics is extremely inefficient, but ray-ten is quite efficient at being inefficient, thanks to [portable-simd](https://doc.rust-lang.org/std/simd/index.html), [rayon](https://docs.rs/rayon/latest/rayon/) and cutting all the corners.
-Uses [macroquad](https://github.com/not-fl3/macroquad) for displaying the render and window controls because its WASM integration just works.
+I use [macroquad](https://github.com/not-fl3/macroquad) for displaying the render and window controls because its WASM integration just works.
 
 **So what do I do?**
 
@@ -35,7 +35,7 @@ That's rays-per-second, a handy way to gauge ray tracing throughput. Works like 
 | Ryzen 7 3700X (8 cores) | 39M                | 300M             | 7M           | 17M         |
 | MediaTek Dimensity 1200 | -                  | -                | 10M          | 12M         |
 
-All browser versions are the most recent as of August 07, 2022. WASM modules are optimized with `wasm-opt -O4` and run in single core mode. Yes, mobile Firefox is faster than the desktop version.
+All browser versions are the most recent as of August 07, 2022. WASM modules are compiled with `+simd128`, optimized with `wasm-opt -O4` and run in single core mode. Yes, mobile Firefox is faster than the desktop version.
 
 **That multicore difference is huge, can't you use rayon in WASM somehow?**
 
