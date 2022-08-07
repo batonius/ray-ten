@@ -11,9 +11,10 @@ const TITLE_SHADE_COLOR: Color = WHITE;
 const TITLE_FONT_SCALE: f32 = 0.2;
 
 const MENU_FG_COLOR: Color = BLUE;
+const MENU_HOVERED_FG_COLOR: Color = DARKBLUE;
 const MENU_SHADE_COLOR: Color = WHITE;
 const MENU_FONT_SCALE: f32 = 0.1;
-const MENU_LINE_SPACING: f32 = 1.2;
+const MENU_LINE_SPACING: f32 = 1.5;
 
 const HUD_FG_COLOR: Color = GREEN;
 const HUD_BAD_FG_COLOR: Color = RED;
@@ -58,9 +59,14 @@ pub fn show_title(title: &str) {
     );
 }
 
-pub fn show_menu<I: IntoIterator<Item = String>>(items: I, selected_item: usize) {
+pub fn show_menu<I: IntoIterator<Item = String>>(
+    items: I,
+    selected_item: usize,
+    mouse_position: (f32, f32),
+) -> Option<usize> {
     let screen_width = screen_width();
     let screen_height = screen_height();
+    let mut hovered_item = None;
 
     let font_size = (MENU_FONT_SCALE * screen_height) as u16;
 
@@ -78,12 +84,23 @@ pub fn show_menu<I: IntoIterator<Item = String>>(items: I, selected_item: usize)
 
     let mut y = screen_height / 2.0 + (screen_height / 2.0 - menu_height) / 2.0;
 
-    for (item, dimension) in items.iter().zip(dimensions.iter()) {
-        y += dimension.height * MENU_LINE_SPACING;
+    for (i, (item, dimension)) in items.iter().zip(dimensions.iter()).enumerate() {
+        let new_y = y + dimension.height * MENU_LINE_SPACING;
+        let x = (screen_width - dimension.width) / 2.0;
+
+        let hovered = mouse_position.1 >= y
+            && mouse_position.1 <= new_y
+            && mouse_position.0 >= x
+            && mouse_position.0 <= (x + dimension.width);
+
+        if hovered {
+            hovered_item = Some(i);
+        }
+        y = new_y;
 
         draw_text_ex(
             item.as_str(),
-            (screen_width - dimension.width) / 2.0 + SHADE_OFFSET,
+            x + SHADE_OFFSET,
             y + SHADE_OFFSET,
             TextParams {
                 color: MENU_SHADE_COLOR,
@@ -95,16 +112,22 @@ pub fn show_menu<I: IntoIterator<Item = String>>(items: I, selected_item: usize)
 
         draw_text_ex(
             item.as_str(),
-            (screen_width - dimension.width) / 2.0,
+            x,
             y,
             TextParams {
-                color: MENU_FG_COLOR,
+                color: if hovered {
+                    MENU_HOVERED_FG_COLOR
+                } else {
+                    MENU_FG_COLOR
+                },
                 font_size,
                 font: *FONT,
                 ..Default::default()
             },
         );
     }
+
+    return hovered_item;
 }
 
 pub fn show_hud_top_left(text: &str) {

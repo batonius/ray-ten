@@ -139,6 +139,8 @@ pub struct GameDriver {
     score: isize,
     image: Image,
     texture: Texture2D,
+    current_hovered_item: Option<usize>,
+    prev_mouse_pos: (f32, f32),
 }
 
 impl GameDriver {
@@ -158,6 +160,8 @@ impl GameDriver {
             score: 0,
             image,
             texture,
+            current_hovered_item: None,
+            prev_mouse_pos: (0.0, 0.0),
         }
     }
 
@@ -190,28 +194,27 @@ impl GameDriver {
                 }
             }
             UIState::MainMenu | UIState::PauseMenu | UIState::EndGame => {
-                if is_key_down(KeyCode::Enter) || Self::is_direction_clicked(TouchDirection::Center)
-                {
+                if is_key_down(KeyCode::Enter) {
                     self.since_last_selection_change = 0.0;
                     return Some(self.ui_state.menu_items()[self.current_selected_item].1);
+                }
+
+                if is_mouse_button_pressed(MouseButton::Left) {
+                    if let Some(hovered_item) = self.current_hovered_item {
+                        return Some(self.ui_state.menu_items()[hovered_item].1);
+                    }
                 }
 
                 if is_key_down(KeyCode::Escape) && self.ui_state == UIState::PauseMenu {
                     self.since_last_selection_change = 0.0;
                     return Some(Action::Continue);
                 }
-                if is_key_down(KeyCode::Up)
-                    || Self::is_direction_clicked(TouchDirection::Top)
-                    || Self::is_direction_clicked(TouchDirection::Left)
-                {
+                if is_key_down(KeyCode::Up) {
                     self.current_selected_item =
                         (self.current_selected_item - 1) % self.ui_state.menu_items().len();
                     self.since_last_selection_change = 0.0;
                 }
-                if is_key_down(KeyCode::Down)
-                    || Self::is_direction_clicked(TouchDirection::Bottom)
-                    || Self::is_direction_clicked(TouchDirection::Right)
-                {
+                if is_key_down(KeyCode::Down) {
                     self.current_selected_item =
                         (self.current_selected_item + 1) % self.ui_state.menu_items().len();
                     self.since_last_selection_change = 0.0;
@@ -233,11 +236,13 @@ impl GameDriver {
                 self.ui_state = UIState::PauseMenu;
                 self.current_selected_item = 0;
                 self.since_last_selection_change = 0.0;
+                self.current_hovered_item = None;
             }
             Action::EndGame => {
                 self.ui_state = UIState::EndGame;
                 self.current_selected_item = 0;
                 self.since_last_selection_change = 0.0;
+                self.current_hovered_item = None;
             }
             Action::Continue => {
                 self.ui_state = UIState::Hud;
@@ -246,6 +251,7 @@ impl GameDriver {
                 self.ui_state = UIState::MainMenu;
                 self.current_selected_item = 0;
                 self.since_last_selection_change = 0.0;
+                self.current_hovered_item = None;
             }
         }
     }
@@ -303,13 +309,14 @@ impl GameDriver {
                     },
                 );
                 ui::show_title("ray ten");
-                ui::show_menu(
+                self.current_hovered_item = ui::show_menu(
                     UIState::MainMenu
                         .menu_items()
                         .iter()
                         .map(|&(text, _)| text.to_string()),
                     self.current_selected_item,
-                )
+                    mouse_position(),
+                );
             }
             UIState::Hud => {
                 self.game_state.render(1.0, &mut self.image);
@@ -347,23 +354,31 @@ impl GameDriver {
                     },
                 );
                 ui::show_title("Paused");
-                ui::show_menu(
+                self.current_hovered_item = ui::show_menu(
                     UIState::PauseMenu
                         .menu_items()
                         .iter()
                         .map(|&(text, _)| text.to_string()),
                     self.current_selected_item,
-                )
+                    mouse_position(),
+                );
             }
             UIState::EndGame => {
                 ui::show_title(format!("Final score: {}", self.score).as_str());
-                ui::show_menu(
+                self.current_hovered_item = ui::show_menu(
                     UIState::EndGame
                         .menu_items()
                         .iter()
                         .map(|&(text, _)| text.to_string()),
                     self.current_selected_item,
-                )
+                    mouse_position(),
+                );
+            }
+        }
+        if mouse_position() != self.prev_mouse_pos {
+            self.prev_mouse_pos = mouse_position();
+            if let Some(hovered_item) = self.current_hovered_item {
+                self.current_selected_item = hovered_item;
             }
         }
         ui::show_debug_bottom_left(
