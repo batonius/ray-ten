@@ -2,6 +2,8 @@
 
 [Run in browser](https://batonius.github.io/ray-ten/)
 
+[Read the blog post](https://batonius.github.io/posts/ray-ten/)
+
 https://user-images.githubusercontent.com/153945/183267977-6cbcbf57-995d-468a-b778-612700fa3d7c.mp4
 
 Reimagining of a 1986 ZX Spectrum game [room ten](https://www.mobygames.com/game/zx-spectrum/room-ten) made with ray tracing.
